@@ -99,10 +99,23 @@
 
     /* manual */
     .manual {max-width:720px;}
-    .manual h2{font-family:var(--font-data);font-size:18px;font-weight:700;margin:36px 0 12px;border-bottom:1px solid var(--border);padding-bottom:8px;}
+    .manual h2{font-family:var(--font-body);font-size:18px;font-weight:700;margin:36px 0 12px;border-bottom:1px solid var(--border);padding-bottom:8px;}
     .manual h2:first-child{margin-top:0;}
-    .manual h3{font-size:13px;font-weight:700;color:var(--accent);margin:20px 0 8px;font-family:var(--font-data);letter-spacing:.06em;text-transform:uppercase;}
-    .manual p{font-size:14px;line-height:1.9;margin-bottom:12px;}
+    .manual h3{font-size:14px;font-weight:700;color:var(--accent);margin:24px 0 8px;letter-spacing:.06em;}
+    .manual p{font-size:14px;line-height:1.9;margin-bottom:12px;color:var(--text);}
+    .manual ul,.manual ol{padding-left:20px;margin-bottom:12px;}
+    .manual li{font-size:14px;line-height:1.9;color:var(--text);}
+    .manual table{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:13px;}
+    .manual th{background:var(--surface2);border:1px solid var(--border);padding:10px 12px;text-align:left;font-family:var(--font-data);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+    .manual td{border:1px solid var(--border);padding:10px 12px;line-height:1.6;vertical-align:top;}
+    .formula{background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:12px 16px;font-family:var(--font-data);font-size:14px;margin:12px 0;color:var(--accent);font-weight:600;}
+    .badge-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+    .badge{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:6px 12px;border-radius:6px;font-weight:500;}
+    .badge.good{background:rgba(94,255,184,0.15);color:var(--accent);}
+    .badge.warn{background:rgba(255,217,125,0.15);color:var(--accent3);}
+    .badge.bad{background:rgba(255,123,123,0.15);color:var(--accent2);}
+    .tip{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:13px;line-height:1.8;margin-bottom:12px;color:var(--muted);}
+    .tip strong{color:var(--text);}
   </style>
 </head>
 <body>
@@ -119,7 +132,6 @@
   </nav>
 </header>
 
-<!-- TAB: 診断（完全無料開放） -->
 <div id="tab-diagnose" class="tab-content active">
 <div class="container"><div class="grid-2">
 
@@ -143,7 +155,7 @@
       <div class="field"><label>平均時給</label><input type="number" id="wage" placeholder="1100" /><p class="unit">円</p></div>
     </div>
     <div class="field"><label>月間固定費</label><input type="number" id="fixed" placeholder="300000" /><p class="unit">円（家賃・光熱費など）</p></div>
-    <div class="field"><label>原価率</label><input type="number" id="costRate" placeholder="30" /><p class="unit">%</p></div>
+    <div class="field"><label>原価率</label><input type="number" id="costRate" placeholder="30" /><p class="unit">%（飲食 30〜35%、小売 50〜60% が目安）</p></div>
     <button class="calc-btn" onclick="calculate()">ボトルネックを診断する</button>
   </div>
 
@@ -163,11 +175,9 @@
 </div></div>
 </div>
 
-<!-- TAB: 月次グラフ（要パスワード・初回認証後は自動パス） -->
 <div id="tab-graph" class="tab-content">
 <div class="container">
   
-  <!-- ロック状態の画面 -->
   <div class="panel full-width" id="graph-lock-panel">
     <div class="lock-box">
       <div class="lock-icon">🔒</div>
@@ -182,7 +192,6 @@
     </div>
   </div>
 
-  <!-- 解除後に表示される本来のコンテンツ -->
   <div id="graph-unlocked-content" style="display:none;">
     <div class="grid-2">
       <div class="panel full-width">
@@ -204,13 +213,94 @@
 </div>
 </div>
 
-<!-- TAB: 使い方 -->
 <div id="tab-manual" class="tab-content">
 <div class="container"><div class="manual">
+
   <h2>このツールについて</h2>
-  <p>店舗の基本データを入力するだけで、<strong>FL比率・損益分岐点・人時売上高・客単価</strong>などの経営指標を自動計算し、どこにボトルネックがあるかを即座に診断します。</p>
-  <h2>月次グラフの使い方（有料機能）</h2>
-  <p>「診断」タブで「対象月」を指定して診断を行うと、自動的に「月次グラフ」へデータが蓄積されます。複数月のトレンド（推移）を追うことで、実施した改善施策の効果を検証できます。</p>
+  <p>店舗の基本データを入力するだけで、<strong>FL比率・損益分岐点・人時売上高・客単価</strong>などの経営指標を自動計算し、どこにボトルネックがあるかを即座に診断します。専門知識がなくても「数字で課題を見つける」習慣をサポートします。</p>
+
+  <h2>入力項目の説明</h2>
+  <table>
+    <tr><th>項目</th><th>説明</th><th>入力例</th></tr>
+    <tr><td>対象月</td><td>診断を行う年月。入力すると月次グラフのデータに自動同期されます</td><td>2026-06</td></tr>
+    <tr><td>月間売上</td><td>その月の総売上（税抜き推奨）</td><td>1,000,000 円</td></tr>
+    <tr><td>月間客数</td><td>月間の延べ来店人数</td><td>300 人</td></tr>
+    <tr><td>客単価</td><td>1人あたりの平均購入額。売上と客数を両方入れると自動計算されます</td><td>3,300 円</td></tr>
+    <tr><td>1日の営業時間</td><td>開店〜閉店までの時間数</td><td>10 時間</td></tr>
+    <tr><td>月間営業日数</td><td>実際に営業した日数</td><td>25 日</td></tr>
+    <tr><td>アルバイト人数</td><td>同時に稼働している平均人数（社員は別途換算）</td><td>3 人</td></tr>
+    <tr><td>平均時給</td><td>スタッフ全員の平均時給</td><td>1,100 円</td></tr>
+    <tr><td>月間固定費</td><td>家賃・光熱費・リース料など変動しない費用の合計</td><td>300,000 円</td></tr>
+    <tr><td>原価率</td><td>売上に対する原材料費の割合</td><td>30 %</td></tr>
+  </table>
+
+  <h2>計算される指標</h2>
+
+  <h3>FL比率</h3>
+  <div class="formula">FL比率 = (人件費 + 原価) ÷ 売上 × 100</div>
+  <div class="badge-row">
+    <span class="badge good">🟢 55%以下：優良</span>
+    <span class="badge warn">🟡 55〜65%：標準（要ウォッチ）</span>
+    <span class="badge bad">🔴 65%超：危険ゾーン</span>
+  </div>
+  <p>飲食店の健全経営の目安は <strong>60%以下</strong> と言われています。</p>
+
+  <h3>損益分岐点売上</h3>
+  <div class="formula">損益分岐点 = 固定費 ÷ (1 − 変動費率)</div>
+  <p>この金額を下回ると赤字になります。月の売上目標設定の基準として使ってください。</p>
+
+  <h3>人時売上高</h3>
+  <div class="formula">人時売上高 = 売上 ÷ (スタッフ人数 × 総労働時間)</div>
+  <div class="badge-row">
+    <span class="badge good">🟢 5,000円以上：良好</span>
+    <span class="badge warn">🟡 3,000〜5,000円：改善余地あり</span>
+    <span class="badge bad">🔴 3,000円未満：配置見直しが必要</span>
+  </div>
+
+  <h3>客単価</h3>
+  <div class="formula">客単価 = 売上 ÷ 客数</div>
+  <p>客単価が低い場合は、アップセル（追加注文の促進）やセット商品の導入が有効です。</p>
+
+  <h2>ボトルネック判定の見方</h2>
+  <div class="badge-row">
+    <span class="badge bad">🔴 要改善</span>
+    <span class="badge warn">🟡 注意</span>
+    <span class="badge good">🟢 良好</span>
+  </div>
+  <p><strong>要改善</strong> の項目から優先的に対処してください。すべて良好になることを目指しましょう。</p>
+
+  <h2>よくある改善パターン</h2>
+
+  <h3>FL比率が高い場合</h3>
+  <div class="tip">
+    <strong>人件費が高い</strong> → シフトの最適化、ピーク外の人員削減<br>
+    <strong>原価率が高い</strong> → 仕入れ見直し、廃棄ロスの削減、メニューの価格改定
+  </div>
+
+  <h3>損益分岐点を超えられない場合</h3>
+  <div class="tip">
+    <strong>客単価を上げる</strong> → メメニュー構成・アップセル施策<br>
+    <strong>固定費を下げる</strong> → 家賃交渉、不要なリースの見直し<br>
+    <strong>客数を増やす</strong> → リピート施策、SNS活用
+  </div>
+
+  <h3>人時売上高が低い場合</h3>
+  <div class="tip">
+    <strong>ピーク時間帯を特定する</strong> → 混む時間帯だけ増員、閑散時は削減<br>
+    <strong>作業の効率化</strong> → 仕込みのタイミング見直し、マルチタスク化
+  </div>
+
+  <h2>月次グラフの使い方（有料プレミアム機能）</h2>
+  <ol>
+    <li>「診断」タブで「対象月」を指定して診断を行うと、自動的に「月次グラフ」へデータが蓄積されます。</li>
+    <li>手動で微調整や別月のデータを加えたい場合は、「月次グラフ」タブから直接「＋ 月を追加」を行ってください。</li>
+    <li>「グラフを更新」ボタンを押すことで、売上と営業利益の推移が可視化されます。</li>
+  </ol>
+  <p>複数月のデータを入れることで、改善施策の効果を視覚的に確認できます。</p>
+
+  <h2>結果のコピー機能</h2>
+  <p>診断後に表示される「📋 結果をコピー」ボタンを押すと、主要指標をテキスト形式でクリップボードにコピーできます。noteの記事やメモにそのまま貼り付けてご利用ください。</p>
+
 </div></div>
 </div>
 
@@ -313,6 +403,18 @@ function calculate(){
   else if(marginRate<5) issues.push({l:'mid',t:'利益率が低水準です',s:`利益率 ${marginRate.toFixed(1)}% — 改善が必要です。`});
   else issues.push({l:'low',t:'黒字経営です',s:`利益率 ${marginRate.toFixed(1)}% — 良好です。`});
 
+  if(staff>0){
+    if(laborPerHour<3000) issues.push({l:'high',t:'人時売上高が低いです',s:`${fmt(laborPerHour)}円/人時 — スタッフ配置・シフト設計の見直しを検討してください。`});
+    else if(laborPerHour<5000) issues.push({l:'mid',t:'人時売上高に改善余地があります',s:`${fmt(laborPerHour)}円/人時 — ピーク時間帯への集中配置が効果的です。`});
+    else issues.push({l:'low',t:'人時売上高は良好です',s:`${fmt(laborPerHour)}円/人時 — 効率的なスタッフ配置ができています。`});
+  }
+
+  if(breakEven!==Infinity&&revenue<breakEven)
+    issues.push({l:'high',t:'売上が損益分岐点を下回っています',s:`あと ${fmt(breakEven-revenue)}円 / 月の売上が必要です。客単価アップかリピート率改善を優先してください。`});
+
+  if(unitPrice>0&&unitPrice<1000)
+    issues.push({l:'mid',t:'客単価が低めです',s:`現在 ${fmt(unitPrice)}円 — セット販売やアップセル施策で単価向上を検討してください。`});
+
   document.getElementById('bottleneck-list').innerHTML=issues.map(i=>`
     <li class="bottleneck-item">
       <span class="bn-tag ${i.l}">${i.l==='high'?'要改善':i.l==='mid'?'注意':'良好'}</span>
@@ -324,7 +426,6 @@ function calculate(){
   window._last={revenue,customers,unitPrice,profit,flRatio,breakEven,laborPerHour,marginRate};
 
   // アンロック状態の場合のみ月次グラフに自動同期。
-  // 未解除の場合は、後からシームレスに反映できるよう一時的なキューに待機させる。
   if (isPremiumUnlocked) {
     syncToGraphTab(targetMonth, revenue, fixed, fl);
   } else {
