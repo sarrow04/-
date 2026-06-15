@@ -1,340 +1,487 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>離職リスク スコアリングツール</title>
-<style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --navy: #1a3354;
-    --blue: #2563a8;
-    --red: #dc2626; --red-bg: #fef2f2;
-    --amber: #d97706; --amber-bg: #fffbeb;
-    --green: #059669; --green-bg: #ecfdf5;
-    --gray-50: #f8fafc; --gray-100: #f1f5f9;
-    --gray-200: #e2e8f0; --gray-400: #94a3b8;
-    --gray-600: #475569; --gray-800: #1e293b;
-    --radius: 12px; --shadow: 0 1px 6px rgba(0,0,0,0.08);
-  }
-  body { font-family:'Hiragino Sans','Yu Gothic UI','Meiryo',sans-serif; background:var(--gray-100); color:var(--gray-800); min-height:100vh; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>店舗ボトルネック診断シミュレーター</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Space+Grotesk:wght@400;600;700&display=swap');
+    :root {
+      --bg: #0f1117;
+      --surface: #181c27;
+      --surface2: #1e2333;
+      --border: #2a3050;
+      
+      /* 視認性を向上させたアクセントカラー（高コントラスト） */
+      --accent: #5effb8;       /* 良好：鮮やかなミントグリーン */
+      --accent2: #ff7b7b;      /* 要改善：明るいコーラルレッド */
+      --accent3: #ffd97d;      /* 注意：視認性の高いパステルイエロー */
+      
+      --text: #e8ecf4;
+      --muted: #94a1c1;        /* テキストの沈み込みを防ぐため少し明るく修正 */
+      --font-data: 'Space Grotesk', sans-serif;
+      --font-body: 'Noto Sans JP', sans-serif;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;padding-bottom:80px;}
 
-  /* ===== PASSWORD SCREEN ===== */
-  #lockScreen {
-    position:fixed; inset:0; background:linear-gradient(135deg,var(--navy) 0%,#2d5f9a 100%);
-    display:flex; align-items:center; justify-content:center; z-index:9999;
-  }
-  .lock-box {
-    background:#fff; border-radius:20px; padding:40px 36px;
-    width:100%; max-width:360px; text-align:center;
-    box-shadow:0 20px 60px rgba(0,0,0,0.3);
-  }
-  .lock-icon { font-size:40px; margin-bottom:16px; }
-  .lock-box h2 { font-size:20px; font-weight:800; color:var(--navy); margin-bottom:6px; }
-  .lock-box p { font-size:13px; color:var(--gray-400); margin-bottom:24px; }
-  .pw-input {
-    width:100%; padding:13px 16px; border:2px solid var(--gray-200);
-    border-radius:10px; font-size:16px; text-align:center;
-    letter-spacing:4px; outline:none; transition:border-color 0.2s;
-    margin-bottom:12px;
-  }
-  .pw-input:focus { border-color:var(--blue); }
-  .pw-input.error { border-color:var(--red); animation:shake 0.4s ease; }
-  .pw-btn {
-    width:100%; padding:13px; background:var(--navy); color:#fff;
-    border:none; border-radius:10px; font-size:15px; font-weight:700;
-    cursor:pointer; transition:background 0.2s;
-  }
-  .pw-btn:hover { background:var(--blue); }
-  .pw-error { font-size:13px; color:var(--red); margin-top:10px; min-height:20px; }
-  @keyframes shake {
-    0%,100%{transform:translateX(0)}
-    25%{transform:translateX(-8px)}
-    75%{transform:translateX(8px)}
-  }
+    header{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:100;}
+    .logo-wrap{display:flex;align-items:baseline;gap:14px;}
+    .logo{font-family:var(--font-data);font-size:12px;font-weight:700;color:var(--accent);letter-spacing:.14em;text-transform:uppercase;}
+    header h1{font-family:var(--font-data);font-size:16px;font-weight:700;}
+    nav{display:flex;gap:4px;}
+    nav button{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-family:var(--font-body);font-size:13px;padding:6px 14px;cursor:pointer;transition:all .15s;}
+    nav button.active,nav button:hover{border-color:var(--accent);color:var(--accent);}
 
-  /* ===== APP ===== */
-  #app { display:none; }
-  .header { background:linear-gradient(135deg,var(--navy) 0%,#2d5f9a 100%); padding:32px 20px 28px; color:#fff; }
-  .header-inner { max-width:720px; margin:0 auto; }
-  .header-eyebrow { font-size:11px; letter-spacing:3px; opacity:0.6; text-transform:uppercase; margin-bottom:8px; }
-  .header h1 { font-size:24px; font-weight:800; margin-bottom:6px; }
-  .header p { font-size:13px; opacity:0.7; line-height:1.6; }
-  .main { max-width:720px; margin:0 auto; padding:24px 16px 48px; }
+    .tab-content{display:none;}
+    .tab-content.active{display:block;}
 
-  .summary-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
-  .summary-card { background:#fff; border-radius:var(--radius); padding:16px 12px; text-align:center; box-shadow:var(--shadow); }
-  .summary-card .label { font-size:11px; color:var(--gray-400); margin-bottom:6px; }
-  .summary-card .value { font-size:22px; font-weight:800; }
-  .summary-card .sub { font-size:11px; color:var(--gray-400); margin-top:2px; }
+    .container{max-width:1040px;margin:0 auto;padding:36px 24px;}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
+    @media(max-width:740px){.grid-2{grid-template-columns:1fr;}header{flex-direction:column;gap:12px;align-items:flex-start;}}
 
-  .dist-card { background:#fff; border-radius:var(--radius); padding:20px; margin-bottom:20px; box-shadow:var(--shadow); }
-  .dist-card h2 { font-size:14px; font-weight:700; margin-bottom:16px; }
-  .dist-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-  .dist-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-  .dist-label { font-size:13px; color:var(--gray-600); width:170px; flex-shrink:0; }
-  .dist-bar-wrap { flex:1; background:var(--gray-200); border-radius:99px; height:7px; overflow:hidden; }
-  .dist-bar { height:100%; border-radius:99px; }
-  .dist-count { font-size:13px; font-weight:700; width:28px; text-align:right; }
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px;}
+    .panel-title{font-family:var(--font-data);font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:20px;}
+    .full-width{grid-column:1/-1;}
 
-  .controls { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
-  .filter-btn { padding:7px 15px; border-radius:99px; border:none; cursor:pointer; font-size:13px; font-weight:600; background:#fff; color:var(--gray-600); box-shadow:var(--shadow); transition:all 0.15s; }
-  .filter-btn.active { background:var(--navy); color:#fff; }
-  .sort-select { margin-left:auto; padding:8px 12px; border-radius:8px; border:1px solid var(--gray-200); font-size:13px; color:var(--gray-600); background:#fff; cursor:pointer; }
+    .field{margin-bottom:16px;}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
+    input[type=number],input[type=month]{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font-data);font-size:16px;font-weight:600;outline:none;transition:border-color .2s;}
+    input:focus{border-color:var(--accent);}
+    input::placeholder{color:var(--border);font-weight:400;}
+    .unit{font-size:11px;color:var(--muted);margin-top:4px;}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
-  .emp-card { background:#fff; border-radius:var(--radius); border:1.5px solid var(--gray-200); margin-bottom:12px; overflow:hidden; box-shadow:var(--shadow); transition:border-color 0.2s,box-shadow 0.2s; }
-  .emp-card.open { box-shadow:0 4px 20px rgba(0,0,0,0.1); }
-  .emp-header { padding:16px 20px; cursor:pointer; display:flex; align-items:center; gap:14px; }
-  .rank-badge { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; color:#fff; flex-shrink:0; }
-  .emp-info { flex:1; min-width:0; }
-  .emp-name-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
-  .emp-name { font-weight:700; font-size:16px; }
-  .dept-tag { font-size:11px; color:var(--gray-400); background:var(--gray-100); padding:2px 8px; border-radius:99px; }
-  .risk-tag { font-size:12px; font-weight:700; padding:3px 10px; border-radius:99px; margin-left:auto; }
-  .chevron { color:var(--gray-400); font-size:14px; flex-shrink:0; transition:transform 0.2s; }
-  .emp-card.open .chevron { transform:rotate(180deg); }
+    .calc-btn{width:100%;margin-top:8px;background:var(--accent);color:#0f1117;border:none;border-radius:8px;padding:14px;font-family:var(--font-data);font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s;}
+    .calc-btn:hover{opacity:.85;}
+    .sec-btn{background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:var(--font-data);font-size:13px;font-weight:600;padding:10px 18px;cursor:pointer;transition:border-color .2s;}
+    .sec-btn:hover{border-color:var(--accent);color:var(--accent);}
 
-  .score-bar-wrap { width:100%; }
-  .score-bar-top { display:flex; justify-content:space-between; margin-bottom:5px; }
-  .score-bar-top span:first-child { font-size:12px; color:var(--gray-400); }
-  .score-bar-top .score-val { font-size:15px; font-weight:800; }
-  .score-track { background:var(--gray-200); border-radius:99px; height:8px; overflow:hidden; }
-  .score-fill { height:100%; border-radius:99px; }
+    .result-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+    .metric{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;}
+    .metric-label{font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:.06em;}
+    .metric-value{font-family:var(--font-data);font-size:22px;font-weight:700;}
+    
+    /* 文字色のコントラストと太さを強化 */
+    .metric-value.good{color:var(--accent);text-shadow: 0 0 1px rgba(94,255,184,0.2);}
+    .metric-value.warn{color:var(--accent3);text-shadow: 0 0 1px rgba(255,217,125,0.2);}
+    .metric-value.bad{color:var(--accent2);text-shadow: 0 0 1px rgba(255,123,123,0.2);}
+    .metric-sub{font-size:11px;color:var(--muted);margin-top:4px;}
 
-  .emp-detail { padding:0 20px 20px; border-top:1px solid var(--gray-100); display:none; }
-  .emp-card.open .emp-detail { display:block; }
-  .metrics-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:16px 0; }
-  .metric-cell { border-radius:10px; padding:12px; border:1px solid var(--gray-200); text-align:center; background:var(--gray-50); }
-  .metric-cell.warn { background:var(--red-bg); border-color:rgba(220,38,38,0.25); }
-  .metric-cell.warn-amber { background:var(--amber-bg); border-color:rgba(217,119,6,0.25); }
-  .metric-label { font-size:11px; color:var(--gray-400); margin-bottom:5px; }
-  .metric-val { font-size:18px; font-weight:700; color:var(--gray-800); }
-  .metric-cell.warn .metric-val { color:var(--red); }
-  .metric-cell.warn-amber .metric-val { color:var(--amber); }
+    .bottleneck-list{list-style:none;}
+    .bottleneck-item{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--border);}
+    .bottleneck-item:last-child{border-bottom:none;}
+    .bn-tag{flex-shrink:0;font-family:var(--font-data);font-size:10px;font-weight:700;letter-spacing:.1em;padding:4px 10px;border-radius:4px;text-transform:uppercase;margin-top:2px;}
+    
+    /* タグ内の文字の認識率を高めるため、背景を少し濃くして文字色をはっきりと */
+    .bn-tag.high{background:rgba(255,123,123,0.22);color:var(--accent2);}
+    .bn-tag.mid{background:rgba(255,217,125,0.22);color:var(--accent3);}
+    .bn-tag.low{background:rgba(94,255,184,0.22);color:var(--accent);}
+    .bn-text{font-size:14px;line-height:1.6;font-weight:500;}
+    .bn-sub{font-size:12px;color:var(--muted);margin-top:2px;}
 
-  .advice-box { border-radius:10px; padding:14px 16px; background:var(--gray-50); }
-  .advice-title { font-size:13px; font-weight:700; margin-bottom:10px; color:var(--gray-800); }
-  .advice-item { font-size:13px; color:var(--gray-600); line-height:1.6; margin-bottom:6px; padding-left:4px; }
-  .advice-item:last-child { margin-bottom:0; }
-  .footer-note { text-align:center; font-size:12px; color:var(--gray-400); margin-top:24px; line-height:1.8; }
+    .copy-bar{display:flex;justify-content:flex-end;margin-bottom:12px;}
 
-  @media(max-width:480px){
-    .summary-grid{grid-template-columns:repeat(2,1fr);}
-    .metrics-grid{grid-template-columns:repeat(2,1fr);}
-    .header h1{font-size:20px;}
-    .dist-label{width:130px;font-size:12px;}
-    .lock-box{padding:32px 24px;}
-  }
-</style>
+    .month-entry{display:grid;grid-template-columns:160px 1fr 1fr 1fr 36px;gap:10px;align-items:end;margin-bottom:10px;}
+    @media(max-width:600px){.month-entry{grid-template-columns:1fr 1fr;}}
+    .del-btn{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:16px;width:36px;height:42px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+    .del-btn:hover{border-color:var(--accent2);color:var(--accent2);}
+    .chart-wrap{position:relative;height:320px;margin-top:24px;}
+
+    .empty-state{text-align:center;color:var(--muted);font-size:14px;padding:40px 0;}
+    .empty-state .big{font-family:var(--font-data);font-size:40px;margin-bottom:8px;}
+
+    /* manual */
+    .manual {max-width:720px;}
+    .manual h2{font-family:var(--font-data);font-size:18px;font-weight:700;margin:36px 0 12px;border-bottom:1px solid var(--border);padding-bottom:8px;}
+    .manual h2:first-child{margin-top:0;}
+    .manual h3{font-size:13px;font-weight:700;color:var(--accent);margin:20px 0 8px;font-family:var(--font-data);letter-spacing:.06em;text-transform:uppercase;}
+    .manual p{font-size:14px;line-height:1.9;margin-bottom:12px;}
+    .manual ul,.manual ol{padding-left:20px;margin-bottom:12px;}
+    .manual li{font-size:14px;line-height:1.9;}
+    .manual table{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:13px;}
+    .manual th{background:var(--surface2);border:1px solid var(--border);padding:10px 12px;text-align:left;font-family:var(--font-data);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+    .manual td{border:1px solid var(--border);padding:10px 12px;line-height:1.6;vertical-align:top;}
+    .formula{background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:12px 16px;font-family:var(--font-data);font-size:14px;margin:12px 0;color:var(--accent);font-weight:600;}
+    .badge-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+    .badge{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:6px 12px;border-radius:6px;font-weight:500;}
+    .badge.good{background:rgba(94,255,184,0.15);color:var(--accent);}
+    .badge.warn{background:rgba(255,217,125,0.15);color:var(--accent3);}
+    .badge.bad{background:rgba(255,123,123,0.15);color:var(--accent2);}
+    .tip{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:13px;line-height:1.8;margin-bottom:12px;color:var(--muted);}
+    .tip strong{color:var(--text);}
+  </style>
 </head>
 <body>
 
-<!-- PASSWORD SCREEN -->
-<div id="lockScreen">
-  <div class="lock-box">
-    <div class="lock-icon">🔐</div>
-    <h2>認証が必要です</h2>
-    <p>ご購入ありがとうございます。<br>パスワードを入力してください。</p>
-    <input type="password" class="pw-input" id="pwInput" placeholder="••••••••" maxlength="20">
-    <button class="pw-btn" onclick="checkPassword()">アクセスする</button>
-    <div class="pw-error" id="pwError"></div>
+<header>
+  <div class="logo-wrap">
+    <span class="logo">Bottleneck</span>
+    <h1>店舗ボトルネック診断シミュレーター</h1>
   </div>
+  <nav>
+    <button class="active" onclick="showTab('diagnose',this)">診断</button>
+    <button onclick="showTab('graph',this)">月次グラフ</button>
+    <button onclick="showTab('manual',this)">使い方</button>
+  </nav>
+</header>
+
+<div id="tab-diagnose" class="tab-content active">
+<div class="container"><div class="grid-2">
+
+  <div class="panel">
+    <p class="panel-title">データ入力</p>
+    <div class="field">
+      <label>対象月（月次グラフに自動反映されます）</label>
+      <input type="month" id="targetMonth" />
+    </div>
+    <div class="field-row">
+      <div class="field"><label>月間売上</label><input type="number" id="revenue" placeholder="1000000" /><p class="unit">円 / 月</p></div>
+      <div class="field"><label>月間客数</label><input type="number" id="customers" placeholder="300" /><p class="unit">人 / 月</p></div>
+    </div>
+    <div class="field"><label>客単価（売上÷客数 で自動計算）</label><input type="number" id="unitPrice" placeholder="3300" /><p class="unit">円</p></div>
+    <div class="field-row">
+      <div class="field"><label>1日の営業時間</label><input type="number" id="hours" placeholder="10" /><p class="unit">時間</p></div>
+      <div class="field"><label>月間営業日数</label><input type="number" id="days" placeholder="25" /><p class="unit">日</p></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>アルバイト（同時稼働平均）</label><input type="number" id="staff" placeholder="3" /><p class="unit">人</p></div>
+      <div class="field"><label>平均時給</label><input type="number" id="wage" placeholder="1100" /><p class="unit">円</p></div>
+    </div>
+    <div class="field"><label>月間固定費</label><input type="number" id="fixed" placeholder="300000" /><p class="unit">円（家賃・光熱費など）</p></div>
+    <div class="field"><label>原価率</label><input type="number" id="costRate" placeholder="30" /><p class="unit">%（飲食 30〜35%、小売 50〜60% が目安）</p></div>
+    <button class="calc-btn" onclick="calculate()">ボトルネックを診断する</button>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">診断結果</p>
+    <div class="copy-bar"><button class="sec-btn" onclick="copyResult()" id="copy-btn" style="display:none">📋 結果をコピー</button></div>
+    <div id="result-content">
+      <div class="empty-state"><div class="big">📊</div>左のデータを入力して<br>診断してください</div>
+    </div>
+  </div>
+
+  <div class="panel full-width" id="bottleneck-panel" style="display:none">
+    <p class="panel-title">ボトルネック分析</p>
+    <ul class="bottleneck-list" id="bottleneck-list"></ul>
+  </div>
+
+</div></div>
 </div>
 
-<!-- APP -->
-<div id="app">
-  <div class="header">
-    <div class="header-inner">
-      <div class="header-eyebrow">HR Analytics Tool</div>
-      <h1>離職リスク スコアリング</h1>
-      <p>勤怠・満足度データから社員の離職リスクを自動算出します</p>
+<div id="tab-graph" class="tab-content">
+<div class="container"><div class="grid-2">
+
+  <div class="panel full-width">
+    <p class="panel-title">月次データ入力</p>
+    <div id="month-entries"></div>
+    <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
+      <button class="sec-btn" onclick="addMonth()">＋ 月を追加</button>
+      <button class="calc-btn" style="max-width:180px" onclick="drawChart()">グラフを更新</button>
     </div>
   </div>
-  <div class="main">
-    <div class="summary-grid" id="summaryGrid"></div>
-    <div class="dist-card">
-      <h2>リスク分布</h2>
-      <div id="distRows"></div>
-    </div>
-    <div class="controls">
-      <button class="filter-btn active" data-filter="all">全員</button>
-      <button class="filter-btn" data-filter="high">🔴 高リスク</button>
-      <button class="filter-btn" data-filter="mid">🟡 中リスク</button>
-      <button class="filter-btn" data-filter="low">🟢 低リスク</button>
-      <select class="sort-select" id="sortSelect">
-        <option value="score">スコア順</option>
-        <option value="name">名前順</option>
-      </select>
-    </div>
-    <div id="empList"></div>
-    <div class="footer-note">
-      ※ このツールはサンプルデータで動作しています。<br>
-      実際のデータに差し替えてご利用ください。
-    </div>
+
+  <div class="panel full-width" id="chart-panel" style="display:none">
+    <p class="panel-title">売上・利益 推移</p>
+    <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
   </div>
+
+</div></div>
+</div>
+
+<div id="tab-manual" class="tab-content">
+<div class="container"><div class="manual">
+
+  <h2>このツールについて</h2>
+  <p>店舗の基本データを入力するだけで、<strong>FL比率・損益分岐点・人時売上高・客単価</strong>などの経営指標を自動計算し、どこにボトルネックがあるかを即座に診断します。専門知識がなくても「数字で課題を見つける」習慣をサポートします。</p>
+
+  <h2>入力項目の説明</h2>
+  <table>
+    <tr><th>項目</th><th>説明</th><th>入力例</th></tr>
+    <tr><td>対象月</td><td>診断を行う年月。入力すると月次グラフのデータに自動同期されます</td><td>2026-06</td></tr>
+    <tr><td>月間売上</td><td>その月の総売上（税抜き推奨）</td><td>1,000,000 円</td></tr>
+    <tr><td>月間客数</td><td>月間の延べ来店人数</td><td>300 人</td></tr>
+    <tr><td>客単価</td><td>1人あたりの平均購入額。売上と客数を両方入れると自動計算されます</td><td>3,300 円</td></tr>
+    <tr><td>1日の営業時間</td><td>開店〜閉店までの時間数</td><td>10 時間</td></tr>
+    <tr><td>月間営業日数</td><td>実際に営業した日数</td><td>25 日</td></tr>
+    <tr><td>アルバイト人数</td><td>同時に稼働している平均人数（社員は別途換算）</td><td>3 人</td></tr>
+    <tr><td>平均時給</td><td>スタッフ全員の平均時給</td><td>1,100 円</td></tr>
+    <tr><td>月間固定費</td><td>家賃・光熱費・リース料など変動しない費用の合計</td><td>300,000 円</td></tr>
+    <tr><td>原価率</td><td>売上に対する原材料費の割合</td><td>30 %</td></tr>
+  </table>
+
+  <h2>計算される指標</h2>
+
+  <h3>FL比率</h3>
+  <div class="formula">FL比率 = (人件費 + 原価) ÷ 売上 × 100</div>
+  <div class="badge-row">
+    <span class="badge good">🟢 55%以下：優良</span>
+    <span class="badge warn">🟡 55〜65%：標準（要ウォッチ）</span>
+    <span class="badge bad">🔴 65%超：危険ゾーン</span>
+  </div>
+  <p>飲食店の健全経営の目安は <strong>60%以下</strong> と言われています。</p>
+
+  <h3>損益分岐点売上</h3>
+  <div class="formula">損益分岐点 = 固定費 ÷ (1 − 変動費率)</div>
+  <p>この金額を下回ると赤字になります。月の売上目標設定の基準として使ってください。</p>
+
+  <h3>人時売上高</h3>
+  <div class="formula">人時売上高 = 売上 ÷ (スタッフ人数 × 総労働時間)</div>
+  <div class="badge-row">
+    <span class="badge good">🟢 5,000円以上：良好</span>
+    <span class="badge warn">🟡 3,000〜5,000円：改善余地あり</span>
+    <span class="badge bad">🔴 3,000円未満：配置見直しが必要</span>
+  </div>
+
+  <h3>客単価</h3>
+  <div class="formula">客単価 = 売上 ÷ 客数</div>
+  <p>客単価が低い場合は、アップセル（追加注文の促進）やセット商品の導入が有効です。</p>
+
+  <h2>ボトルネック判定の見方</h2>
+  <div class="badge-row">
+    <span class="badge bad">🔴 要改善</span>
+    <span class="badge warn">🟡 注意</span>
+    <span class="badge good">🟢 良好</span>
+  </div>
+  <p><strong>要改善</strong> の項目から優先的に対処してください。すべて良好になることを目指しましょう。</p>
+
+  <h2>よくある改善パターン</h2>
+
+  <h3>FL比率が高い場合</h3>
+  <div class="tip">
+    <strong>人件費が高い</strong> → シフトの最適化、ピーク外の人員削減<br>
+    <strong>原価率が高い</strong> → 仕入れ見直し、廃棄ロスの削減、メニューの価格改定
+  </div>
+
+  <h3>損益分岐点を超えられない場合</h3>
+  <div class="tip">
+    <strong>客単価を上げる</strong> → メニュー構成・アップセル施策<br>
+    <strong>固定費を下げる</strong> → 家賃交渉、不要なリースの見直し<br>
+    <strong>客数を増やす</strong> → リピート施策、SNS活用
+  </div>
+
+  <h3>人時売上高が低い場合</h3>
+  <div class="tip">
+    <strong>ピーク時間帯を特定する</strong> → 混む時間帯だけ増員、閑散時は削減<br>
+    <strong>作業の効率化</strong> → 仕込みのタイミング見直し、マルチタスク化
+  </div>
+
+  <h2>月次グラフの使い方</h2>
+  <ol>
+    <li>「診断」タブで「対象月」を指定して診断すると、自動的に「月次グラフ」にデータが蓄積されます。</li>
+    <li>手動で微調整や別月のデータを加えたい場合は、「月次グラフ」タブから直接「＋ 月を追加」を行ってください。</li>
+    <li>「グラフを更新」ボタンを押すことで、売上と営業利益の推移が可視化されます。</li>
+  </ol>
+  <p>複数月のデータを入れることで、改善施策の効果を視覚的に確認できます。</p>
+
+</div></div>
 </div>
 
 <script>
-// ========== パスワード設定 ==========
-const PASSWORD = "HR2024";
-// ====================================
+// 初期状態で現在の年月を設定
+const now = new Date();
+const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+document.getElementById('targetMonth').value = currentYm;
 
-function checkPassword() {
-  const input = document.getElementById('pwInput').value;
-  const errorEl = document.getElementById('pwError');
-  const inputEl = document.getElementById('pwInput');
-  if (input === PASSWORD) {
-    document.getElementById('lockScreen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    renderSummary();
-    renderCards();
-  } else {
-    errorEl.textContent = 'パスワードが違います。もう一度お試しください。';
-    inputEl.classList.add('error');
-    inputEl.value = '';
-    setTimeout(() => inputEl.classList.remove('error'), 500);
+function showTab(id,btn){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function fmt(n){return Math.round(n).toLocaleString('ja-JP');}
+function val(id){return parseFloat(document.getElementById(id).value)||0;}
+
+function calculate(){
+  const revenue=val('revenue'),customers=val('customers'),hours=val('hours'),
+        days=val('days'),staff=val('staff'),wage=val('wage'),
+        fixed=val('fixed'),costRate=val('costRate'),
+        targetMonth=document.getElementById('targetMonth').value;
+
+  if(!revenue||!hours||!days){alert('売上・営業時間・営業日数は必須です');return;}
+
+  let unitPrice=val('unitPrice');
+  if(!unitPrice&&customers>0){
+    unitPrice=revenue/customers;
+    document.getElementById('unitPrice').value=Math.round(unitPrice);
   }
-}
 
-document.getElementById('pwInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') checkPassword();
-});
+  const totalHours=hours*days;
+  const laborCost=staff*wage*totalHours;
+  const cogs=revenue*(costRate/100);
+  const fl=laborCost+cogs;
+  const flRatio=(fl/revenue)*100;
+  const varRate=(costRate/100)+(laborCost/revenue);
+  const breakEven=varRate<1?fixed/(1-varRate):Infinity;
+  const profit=revenue-fl-fixed;
+  const laborPerHour=staff>0?revenue/(staff*totalHours):0;
+  const dailySales=days>0?revenue/days:0;
+  const marginRate=(profit/revenue)*100;
 
-// ========== アプリ本体 ==========
-const EMPLOYEES = [
-  { name:"田中 健太",  dept:"営業部", overtime:52, paidLeave:15, lateCount:4, tenure:1.2, satisfaction:2, absences:3 },
-  { name:"佐藤 美咲",  dept:"人事部", overtime:8,  paidLeave:85, lateCount:0, tenure:6.5, satisfaction:4, absences:0 },
-  { name:"鈴木 拓也",  dept:"開発部", overtime:38, paidLeave:40, lateCount:1, tenure:2.1, satisfaction:3, absences:1 },
-  { name:"高橋 由美",  dept:"営業部", overtime:61, paidLeave:10, lateCount:6, tenure:0.8, satisfaction:2, absences:5 },
-  { name:"伊藤 誠",    dept:"総務部", overtime:12, paidLeave:70, lateCount:0, tenure:9.0, satisfaction:5, absences:0 },
-  { name:"渡辺 さくら",dept:"開発部", overtime:45, paidLeave:25, lateCount:2, tenure:1.5, satisfaction:3, absences:2 },
-  { name:"中村 浩二",  dept:"営業部", overtime:70, paidLeave:5,  lateCount:8, tenure:0.5, satisfaction:1, absences:7 },
-  { name:"小林 陽子",  dept:"人事部", overtime:5,  paidLeave:90, lateCount:0, tenure:12.0,satisfaction:5, absences:0 },
-  { name:"加藤 龍",    dept:"開発部", overtime:30, paidLeave:55, lateCount:1, tenure:3.2, satisfaction:4, absences:1 },
-  { name:"山田 花",    dept:"総務部", overtime:48, paidLeave:20, lateCount:3, tenure:1.0, satisfaction:2, absences:4 },
-];
+  const flClass=flRatio<55?'good':flRatio<65?'warn':'bad';
+  const profitClass=profit>0?'good':'bad';
 
-function calcScore(e) {
-  let s = 0;
-  if (e.overtime >= 60) s+=30; else if (e.overtime >= 45) s+=20; else if (e.overtime >= 30) s+=10;
-  if (e.paidLeave <= 20) s+=25; else if (e.paidLeave <= 40) s+=15; else if (e.paidLeave <= 60) s+=5;
-  if (e.lateCount >= 6) s+=20; else if (e.lateCount >= 3) s+=12; else if (e.lateCount >= 1) s+=5;
-  if (e.tenure <= 1) s+=15; else if (e.tenure <= 2) s+=8;
-  if (e.satisfaction <= 1) s+=20; else if (e.satisfaction <= 2) s+=12; else if (e.satisfaction <= 3) s+=5;
-  if (e.absences >= 5) s+=15; else if (e.absences >= 3) s+=8; else if (e.absences >= 1) s+=3;
-  return Math.min(s, 100);
-}
-
-function getRisk(score) {
-  if (score >= 70) return { label:"高リスク", color:"#dc2626", bg:"#fef2f2", bar:"linear-gradient(90deg,#f87171,#dc2626)" };
-  if (score >= 40) return { label:"中リスク", color:"#d97706", bg:"#fffbeb", bar:"linear-gradient(90deg,#fcd34d,#d97706)" };
-  return { label:"低リスク", color:"#059669", bg:"#ecfdf5", bar:"linear-gradient(90deg,#34d399,#059669)" };
-}
-
-function getAdvices(e) {
-  const a = [];
-  if (e.overtime >= 45) a.push("残業時間が多く、燃え尽き症候群のリスクがあります。業務分担の見直しを検討してください。");
-  if (e.paidLeave <= 30) a.push("有給取得率が低い状態です。取得促進の仕組みづくりが必要です。");
-  if (e.lateCount >= 3) a.push("遅刻が目立ちます。モチベーション低下や体調不良のサインの可能性があります。");
-  if (e.tenure <= 1) a.push("入社1年以内は早期離職リスクが高い時期です。定期的な1on1を推奨します。");
-  if (e.satisfaction <= 2) a.push("満足度が低い状態です。面談を通じて不満の原因を特定することを優先してください。");
-  if (e.absences >= 3) a.push("欠勤が多く、心身の不調が疑われます。産業医や上長との連携を検討してください。");
-  if (a.length === 0) a.push("現時点で大きなリスク要因は見当たりません。引き続き良好な状態を維持してください。");
-  return a;
-}
-
-function warnClass(key, val) {
-  if (key==='overtime' && val>=45) return 'warn';
-  if (key==='paidLeave' && val<=30) return 'warn';
-  if (key==='lateCount' && val>=3) return 'warn';
-  if (key==='tenure' && val<=1) return 'warn-amber';
-  if (key==='satisfaction' && val<=2) return 'warn';
-  if (key==='absences' && val>=3) return 'warn';
-  return '';
-}
-
-const scored = EMPLOYEES.map(e => ({ ...e, score: calcScore(e) }));
-
-function renderSummary() {
-  const avg = Math.round(scored.reduce((s,e)=>s+e.score,0)/scored.length);
-  const high = scored.filter(e=>e.score>=70).length;
-  const mid  = scored.filter(e=>e.score>=40&&e.score<70).length;
-  const low  = scored.filter(e=>e.score<40).length;
-  document.getElementById('summaryGrid').innerHTML = [
-    { label:"平均スコア", value:`${avg}点`, color:"#2563a8", sub:"全社員" },
-    { label:"高リスク",   value:`${high}名`, color:"#dc2626", sub:"要対応" },
-    { label:"中リスク",   value:`${mid}名`,  color:"#d97706", sub:"要注意" },
-    { label:"低リスク",   value:`${low}名`,  color:"#059669", sub:"良好"   },
-  ].map(c=>`<div class="summary-card"><div class="label">${c.label}</div><div class="value" style="color:${c.color}">${c.value}</div><div class="sub">${c.sub}</div></div>`).join('');
-
-  document.getElementById('distRows').innerHTML = [
-    { label:"高リスク（70点以上）", count:high, color:"#dc2626" },
-    { label:"中リスク（40〜69点）",  count:mid,  color:"#d97706" },
-    { label:"低リスク（39点以下）",  count:low,  color:"#059669" },
-  ].map(r=>`<div class="dist-row"><div class="dist-dot" style="background:${r.color}"></div><div class="dist-label">${r.label}</div><div class="dist-bar-wrap"><div class="dist-bar" style="width:${(r.count/scored.length)*100}%;background:${r.color}"></div></div><div class="dist-count" style="color:${r.color}">${r.count}名</div></div>`).join('');
-}
-
-let currentFilter='all', currentSort='score';
-
-function getFiltered() {
-  let data=[...scored];
-  if(currentFilter==='high') data=data.filter(e=>e.score>=70);
-  else if(currentFilter==='mid') data=data.filter(e=>e.score>=40&&e.score<70);
-  else if(currentFilter==='low') data=data.filter(e=>e.score<40);
-  if(currentSort==='score') data.sort((a,b)=>b.score-a.score);
-  else data.sort((a,b)=>a.name.localeCompare(b.name,'ja'));
-  return data;
-}
-
-function renderCards() {
-  const metrics=[
-    {key:'overtime',label:'月残業',unit:'h'},
-    {key:'paidLeave',label:'有給取得率',unit:'%'},
-    {key:'lateCount',label:'遅刻回数',unit:'回'},
-    {key:'tenure',label:'在籍年数',unit:'年'},
-    {key:'satisfaction',label:'満足度',unit:'/5'},
-    {key:'absences',label:'欠勤回数',unit:'回'},
-  ];
-  document.getElementById('empList').innerHTML=getFiltered().map((e,i)=>{
-    const risk=getRisk(e.score);
-    return `<div class="emp-card" id="card-${i}">
-      <div class="emp-header" onclick="toggleCard(${i})">
-        <div class="rank-badge" style="background:${risk.color}">${i+1}</div>
-        <div class="emp-info">
-          <div class="emp-name-row">
-            <span class="emp-name">${e.name}</span>
-            <span class="dept-tag">${e.dept}</span>
-            <span class="risk-tag" style="color:${risk.color};background:${risk.bg}">${risk.label}</span>
-          </div>
-          <div class="score-bar-wrap">
-            <div class="score-bar-top"><span>リスクスコア</span><span class="score-val" style="color:${risk.color}">${e.score}点</span></div>
-            <div class="score-track"><div class="score-fill" style="width:${e.score}%;background:${risk.bar}"></div></div>
-          </div>
-        </div>
-        <div class="chevron">▼</div>
-      </div>
-      <div class="emp-detail">
-        <div class="metrics-grid">${metrics.map(m=>`<div class="metric-cell ${warnClass(m.key,e[m.key])}"><div class="metric-label">${m.label}</div><div class="metric-val">${e[m.key]}${m.unit}</div></div>`).join('')}</div>
-        <div class="advice-box" style="border-left:4px solid ${risk.color}">
-          <div class="advice-title">💡 推奨アクション</div>
-          ${getAdvices(e).map(a=>`<div class="advice-item">• ${a}</div>`).join('')}
-        </div>
-      </div>
+  document.getElementById('result-content').innerHTML=`
+    <div class="result-grid">
+      <div class="metric"><p class="metric-label">FL比率</p><p class="metric-value ${flClass}">${flRatio.toFixed(1)}%</p><p class="metric-sub">目安: 55〜65%</p></div>
+      <div class="metric"><p class="metric-label">営業利益</p><p class="metric-value ${profitClass}">${fmt(profit)}円</p><p class="metric-sub">利益率 ${marginRate.toFixed(1)}%</p></div>
+      <div class="metric"><p class="metric-label">損益分岐点</p><p class="metric-value">${breakEven===Infinity?'—':fmt(breakEven)+'円'}</p><p class="metric-sub">最低必要売上</p></div>
+      <div class="metric"><p class="metric-label">人時売上高</p><p class="metric-value">${staff>0?fmt(laborPerHour)+'円':'—'}</p><p class="metric-sub">1人1時間あたり</p></div>
+      <div class="metric"><p class="metric-label">客単価</p><p class="metric-value">${unitPrice>0?fmt(unitPrice)+'円':'—'}</p><p class="metric-sub">${customers>0?'月'+fmt(customers)+'人来店':'客数を入力してください'}</p></div>
+      <div class="metric"><p class="metric-label">日次売上</p><p class="metric-value">${fmt(dailySales)}円</p><p class="metric-sub">1日平均</p></div>
     </div>`;
-  }).join('');
+
+  const issues=[];
+  if(flRatio>65) issues.push({l:'high',t:'FL比率が高すぎます',s:`現在 ${flRatio.toFixed(1)}% — 65%以下を目指してください。人件費か原価に問題がある可能性があります。`});
+  else if(flRatio>55) issues.push({l:'mid',t:'FL比率がやや高めです',s:`現在 ${flRatio.toFixed(1)}% — 許容範囲ですが改善余地あり。`});
+  else issues.push({l:'low',t:'FL比率は健全です',s:`現在 ${flRatio.toFixed(1)}% — 良好な水準です。`});
+
+  if(profit<0) issues.push({l:'high',t:'赤字です',s:`月 ${fmt(Math.abs(profit))}円の損失。${breakEven!==Infinity?'損益分岐点まで '+fmt(breakEven-revenue)+'円の売上アップが必要です。':''}`});
+  else if(marginRate<5) issues.push({l:'mid',t:'利益率が低水準です',s:`利益率 ${marginRate.toFixed(1)}% — 固定費の見直しか売上増加が有効です。`});
+  else issues.push({l:'low',t:'黒字経営です',s:`利益率 ${marginRate.toFixed(1)}% — 現状維持しながらさらなる改善を目指しましょう。`});
+
+  if(staff>0){
+    if(laborPerHour<3000) issues.push({l:'high',t:'人時売上高が低いです',s:`${fmt(laborPerHour)}円/人時 — スタッフ配置・シフト設計の見直しを検討してください。`});
+    else if(laborPerHour<5000) issues.push({l:'mid',t:'人時売上高に改善余地があります',s:`${fmt(laborPerHour)}円/人時 — ピーク時間帯への集中配置が効果的です。`});
+    else issues.push({l:'low',t:'人時売上高は良好です',s:`${fmt(laborPerHour)}円/人時 — 効率的なスタッフ配置ができています。`});
+  }
+
+  if(breakEven!==Infinity&&revenue<breakEven)
+    issues.push({l:'high',t:'売上が損益分岐点を下回っています',s:`あと ${fmt(breakEven-revenue)}円 / 月の売上が必要です。客単価アップかリピート率改善を優先してください。`});
+
+  if(unitPrice>0&&unitPrice<1000)
+    issues.push({l:'mid',t:'客単価が低めです',s:`現在 ${fmt(unitPrice)}円 — セット販売やアップセル施策で単価向上を検討してください。`});
+
+  document.getElementById('bottleneck-list').innerHTML=issues.map(i=>`
+    <li class="bottleneck-item">
+      <span class="bn-tag ${i.l}">${i.l==='high'?'要改善':i.l==='mid'?'注意':'良好'}</span>
+      <div><p class="bn-text">${i.t}</p><p class="bn-sub">${i.s}</p></div>
+    </li>`).join('');
+
+  document.getElementById('bottleneck-panel').style.display='block';
+  document.getElementById('copy-btn').style.display='inline-block';
+  window._last={revenue,customers,unitPrice,profit,flRatio,breakEven,laborPerHour,marginRate};
+
+  // 【追加機能】月次グラフタブの入力エリアへ自動反映
+  syncToGraphTab(targetMonth, revenue, fixed, fl);
 }
 
-function toggleCard(i){document.getElementById(`card-${i}`).classList.toggle('open');}
+function syncToGraphTab(month, revenue, fixed, fl) {
+  if (!month) return;
+  const entriesContainer = document.getElementById('month-entries');
+  const entries = entriesContainer.querySelectorAll('.month-entry');
+  let exists = false;
 
-document.querySelectorAll('.filter-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    currentFilter=btn.dataset.filter;
-    renderCards();
+  // すでに同じ月が存在するかチェックし、あれば更新
+  entries.forEach(e => {
+    const inputs = e.querySelectorAll('input');
+    if (inputs[0].value === month) {
+      inputs[1].value = Math.round(revenue);
+      inputs[2].value = Math.round(fixed);
+      inputs[3].value = Math.round(fl);
+      exists = true;
+    }
   });
-});
-document.getElementById('sortSelect').addEventListener('change',e=>{currentSort=e.value;renderCards();});
+
+  // 存在しなければ新しく行を追加して値をセット
+  if (!exists) {
+    addMonthRowWithValue(month, Math.round(revenue), Math.round(fixed), Math.round(fl));
+  }
+
+  // 自動的にバックグラウンドでグラフも再描画
+  drawChart(true);
+}
+
+function addMonthRowWithValue(month, revenue, fixed, fl) {
+  const div = document.createElement('div');
+  div.className = 'month-entry';
+  div.innerHTML = `
+    <div class="field"><label>対象月</label><input type="month" value="${month}" /></div>
+    <div class="field"><label>売上（円）</label><input type="number" value="${revenue}" placeholder="1000000" /></div>
+    <div class="field"><label>固定費（円）</label><input type="number" value="${fixed}" placeholder="300000" /></div>
+    <div class="field"><label>FL合計（円）</label><input type="number" value="${fl}" placeholder="550000" /></div>
+    <button class="del-btn" onclick="this.parentElement.remove()" title="削除">✕</button>`;
+  document.getElementById('month-entries').appendChild(div);
+}
+
+function copyResult(){
+  const r=window._last;if(!r)return;
+  const lines=['【店舗ボトルネック診断結果】',
+    `売上: ${fmt(r.revenue)}円`,
+    r.customers?`客数: ${fmt(r.customers)}人 / 客単価: ${fmt(r.unitPrice)}円`:'',
+    `FL比率: ${r.flRatio.toFixed(1)}%`,
+    `営業利益: ${fmt(r.profit)}円（利益率 ${r.marginRate.toFixed(1)}%）`,
+    r.breakEven!==Infinity?`損益分岐点: ${fmt(r.breakEven)}円`:'',
+    r.laborPerHour?`人時売上高: ${fmt(r.laborPerHour)}円`:'',
+  ].filter(Boolean);
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>{
+    const b=document.getElementById('copy-btn');
+    b.textContent='✅ コピーしました';
+    setTimeout(()=>{b.textContent='📋 結果をコピー';},2000);
+  });
+}
+
+let chartInstance=null,monthCount=0;
+function addMonth(){
+  monthCount++;
+  const now=new Date();
+  const m=String(now.getMonth()+2-monthCount).padStart(2,'0');
+  const yr=now.getFullYear();
+  addMonthRowWithValue(`${yr}-${m}`, "", "", "");
+}
+
+function drawChart(isSilent = false){
+  const entries=document.querySelectorAll('.month-entry');
+  if(!entries.length){
+    if(!isSilent) alert('月のデータを追加してください');
+    return;
+  }
+  
+  const dataList = [];
+  entries.forEach(e=>{
+    const inp=e.querySelectorAll('input');
+    const m = inp[0].value || '?';
+    const rev=parseFloat(inp[1].value)||0;
+    const fix=parseFloat(inp[2].value)||0;
+    const fl=parseFloat(inp[3].value)||0;
+    if (inp[1].value || inp[2].value || inp[3].value) {
+      dataList.push({ m, rev, prof: (rev - fl - fix) });
+    }
+  });
+
+  // 月順にソートして並び順を整える
+  dataList.sort((a, b) => a.m.localeCaseInsensitiveCompare ? a.m.localeCaseInsensitiveCompare(b.m) : a.m.localeCompare(b.m));
+
+  if (dataList.length === 0) return;
+
+  const labels = dataList.map(d => d.m);
+  const revenues = dataList.map(d => d.rev);
+  const profits = dataList.map(d => d.prof);
+
+  document.getElementById('chart-panel').style.display='block';
+  if(chartInstance)chartInstance.destroy();
+  const ctx=document.getElementById('trendChart').getContext('2d');
+  chartInstance=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'売上',data:revenues,backgroundColor:'rgba(94,255,184,0.15)',borderColor:'#5effb8',borderWidth:2,borderRadius:4,order:2},
+      {label:'営業利益',data:profits,type:'line',borderColor:'#ffd97d',backgroundColor:'rgba(255,217,125,0.1)',borderWidth:2,pointRadius:5,pointBackgroundColor:'#ffd97d',tension:.3,fill:true,order:1}
+    ]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{color:'#94a1c1',font:{family:'Space Grotesk',size:12}}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${Math.round(c.parsed.y).toLocaleString('ja-JP')}円`}}},
+      scales:{
+        x:{ticks:{color:'#94a1c1'},grid:{color:'#2a3050'}},
+        y:{ticks:{color:'#94a1c1',callback:v=>(v/10000).toFixed(0)+'万円'},grid:{color:'#2a3050'}}
+      }
+    }
+  });
+}
+
+// 初期データのダミー生成を抑止し、スマートな運用ができるように変更
 </script>
 </body>
 </html>
