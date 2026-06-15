@@ -163,7 +163,7 @@
 </div></div>
 </div>
 
-<!-- TAB: 月次グラフ（要パスワード・有料ゲート） -->
+<!-- TAB: 月次グラフ（要パスワード・初回認証後は自動パス） -->
 <div id="tab-graph" class="tab-content">
 <div class="container">
   
@@ -215,12 +215,20 @@
 </div>
 
 <script>
-// グローバルでのロック状態管理
-let isPremiumUnlocked = false;
+// ブラウザのメモリからアンロック状態を読み込む（2回目以降の自動パス機能）
+let isPremiumUnlocked = localStorage.getItem('premium_unlocked') === 'true';
 
-// ページ読み込み時に初期月をセット
-const now = new Date();
-document.getElementById('targetMonth').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+// ページ読み込み時の処理
+window.addEventListener('DOMContentLoaded', () => {
+  const now = new Date();
+  document.getElementById('targetMonth').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  // 過去にログイン成功していれば最初からアンロック状態にする
+  if (isPremiumUnlocked) {
+    document.getElementById('graph-lock-panel').style.display = 'none';
+    document.getElementById('graph-unlocked-content').style.display = 'block';
+  }
+});
 
 function showTab(id,btn){
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
@@ -236,10 +244,13 @@ function unlockGraph() {
   
   if (pw === 'HR2026') {
     isPremiumUnlocked = true;
+    // メモリにアンロック成功状態を保存
+    localStorage.setItem('premium_unlocked', 'true');
+    
     document.getElementById('graph-lock-panel').style.display = 'none';
     document.getElementById('graph-unlocked-content').style.display = 'block';
     
-    // ロック解除時に保留されていたデータがあれば反映
+    // ロック解除時に保留されていたデータがあれば即時反映
     if (window._pendingSync) {
       const p = window._pendingSync;
       syncToGraphTab(p.month, p.revenue, p.fixed, p.fl);
@@ -312,8 +323,8 @@ function calculate(){
   document.getElementById('copy-btn').style.display='inline-block';
   window._last={revenue,customers,unitPrice,profit,flRatio,breakEven,laborPerHour,marginRate};
 
-  // プレミアムがアンロックされている場合のみ月次グラフに自動同期。
-  // 未解除の場合は、後で反映させるために一時保存のみ行う。
+  // アンロック状態の場合のみ月次グラフに自動同期。
+  // 未解除の場合は、後からシームレスに反映できるよう一時的なキューに待機させる。
   if (isPremiumUnlocked) {
     syncToGraphTab(targetMonth, revenue, fixed, fl);
   } else {
