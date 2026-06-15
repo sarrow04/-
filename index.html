@@ -12,9 +12,9 @@
       --surface: #181c27;
       --surface2: #1e2333;
       --border: #2a3050;
-      --accent: #5effb8;
-      --accent2: #ff7b7b;
-      --accent3: #ffd97d;
+      --accent: #5effb8;       /* 良好 */
+      --accent2: #ff7b7b;      /* 要改善 */
+      --accent3: #ffd97d;      /* 注意 */
       --text: #e8ecf4;
       --muted: #94a1c1;
       --font-data: 'Space Grotesk', sans-serif;
@@ -22,38 +22,6 @@
     }
     *{box-sizing:border-box;margin:0;padding:0;}
     body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;padding-bottom:80px;}
-
-    /* 認証用フォームのスタイル */
-    #auth-overlay {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: var(--bg);
-      display: flex; justify-content: center; align-items: center;
-      z-index: 1000;
-    }
-    .auth-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 36px;
-      max-width: 400px;
-      width: 90%;
-      text-align: center;
-    }
-    .auth-box h2 {
-      font-size: 18px; margin-bottom: 20px; font-weight: 700;
-    }
-    .auth-box input[type=password] {
-      width: 100%; background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 8px; padding: 12px 14px; color: var(--text);
-      font-family: var(--font-data); font-size: 16px; font-weight: 600;
-      outline: none; text-align: center; margin-bottom: 16px; transition: border-color .2s;
-    }
-    .auth-box input:focus { border-color: var(--accent); }
-    .error-msg { color: var(--accent2); font-size: 13px; margin-top: -8px; margin-bottom: 12px; display: none; }
-
-    /* メインコンテンツ（初期状態は非表示） */
-    #app-content { display: none; }
 
     header{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:100;}
     .logo-wrap{display:flex;align-items:baseline;gap:14px;}
@@ -76,7 +44,7 @@
 
     .field{margin-bottom:16px;}
     label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;}
-    input[type=number],input[type=month]{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font-data);font-size:16px;font-weight:600;outline:none;transition:border-color .2s;}
+    input[type=number],input[type=month],input[type=password]{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-family:var(--font-data);font-size:16px;font-weight:600;outline:none;transition:border-color .2s;}
     input:focus{border-color:var(--accent);}
     input::placeholder{color:var(--border);font-weight:400;}
     .unit{font-size:11px;color:var(--muted);margin-top:4px;}
@@ -119,161 +87,168 @@
     .empty-state{text-align:center;color:var(--muted);font-size:14px;padding:40px 0;}
     .empty-state .big{font-family:var(--font-data);font-size:40px;margin-bottom:8px;}
 
+    /* 有料機能ゲート用スタイル */
+    .lock-box {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .lock-icon { font-size: 48px; margin-bottom: 16px; }
+    .lock-box p { font-size: 14px; line-height: 1.8; color: var(--muted); margin-bottom: 20px; }
+    .lock-box .inputs { max-width: 300px; margin: 0 auto; }
+    .error-msg { color: var(--accent2); font-size: 13px; margin-top: 8px; display: none; }
+
     /* manual */
     .manual {max-width:720px;}
     .manual h2{font-family:var(--font-data);font-size:18px;font-weight:700;margin:36px 0 12px;border-bottom:1px solid var(--border);padding-bottom:8px;}
     .manual h2:first-child{margin-top:0;}
     .manual h3{font-size:13px;font-weight:700;color:var(--accent);margin:20px 0 8px;font-family:var(--font-data);letter-spacing:.06em;text-transform:uppercase;}
     .manual p{font-size:14px;line-height:1.9;margin-bottom:12px;}
-    .manual ul,.manual ol{padding-left:20px;margin-bottom:12px;}
-    .manual li{font-size:14px;line-height:1.9;}
-    .manual table{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:13px;}
-    .manual th{background:var(--surface2);border:1px solid var(--border);padding:10px 12px;text-align:left;font-family:var(--font-data);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
-    .manual td{border:1px solid var(--border);padding:10px 12px;line-height:1.6;vertical-align:top;}
-    .formula{background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:12px 16px;font-family:var(--font-data);font-size:14px;margin:12px 0;color:var(--accent);font-weight:600;}
-    .badge-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
-    .badge{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:6px 12px;border-radius:6px;font-weight:500;}
-    .badge.good{background:rgba(94,255,184,0.15);color:var(--accent);}
-    .badge.warn{background:rgba(255,217,125,0.15);color:var(--accent3);}
-    .badge.bad{background:rgba(255,123,123,0.15);color:var(--accent2);}
-    .tip{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:13px;line-height:1.8;margin-bottom:12px;color:var(--muted);}
-    .tip strong{color:var(--text);}
   </style>
 </head>
 <body>
 
-<!-- パスワード認証用オーバーレイ -->
-<div id="auth-overlay">
-  <div class="auth-box">
-    <h2>シミュレーターログイン</h2>
-    <input type="password" id="password-input" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter') checkPassword()" />
-    <div id="auth-error" class="error-msg">パスワードが正しくありません</div>
-    <button class="calc-btn" onclick="checkPassword()">入室する</button>
+<header>
+  <div class="logo-wrap">
+    <span class="logo">Bottleneck</span>
+    <h1>店舗ボトルネック診断シミュレーター</h1>
   </div>
+  <nav>
+    <button class="active" onclick="showTab('diagnose',this)">診断</button>
+    <button onclick="showTab('graph',this)">月次グラフ</button>
+    <button onclick="showTab('manual',this)">使い方</button>
+  </nav>
+</header>
+
+<!-- TAB: 診断（完全無料開放） -->
+<div id="tab-diagnose" class="tab-content active">
+<div class="container"><div class="grid-2">
+
+  <div class="panel">
+    <p class="panel-title">データ入力</p>
+    <div class="field">
+      <label>対象月（月次管理機能の利用時に連動します）</label>
+      <input type="month" id="targetMonth" />
+    </div>
+    <div class="field-row">
+      <div class="field"><label>月間売上</label><input type="number" id="revenue" placeholder="1000000" /><p class="unit">円 / 月</p></div>
+      <div class="field"><label>月間客数</label><input type="number" id="customers" placeholder="300" /><p class="unit">人 / 月</p></div>
+    </div>
+    <div class="field"><label>客単価（売上÷客数 で自動計算）</label><input type="number" id="unitPrice" placeholder="3300" /><p class="unit">円</p></div>
+    <div class="field-row">
+      <div class="field"><label>1日の営業時間</label><input type="number" id="hours" placeholder="10" /><p class="unit">時間</p></div>
+      <div class="field"><label>月間営業日数</label><input type="number" id="days" placeholder="25" /><p class="unit">日</p></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>アルバイト（同時稼働平均）</label><input type="number" id="staff" placeholder="3" /><p class="unit">人</p></div>
+      <div class="field"><label>平均時給</label><input type="number" id="wage" placeholder="1100" /><p class="unit">円</p></div>
+    </div>
+    <div class="field"><label>月間固定費</label><input type="number" id="fixed" placeholder="300000" /><p class="unit">円（家賃・光熱費など）</p></div>
+    <div class="field"><label>原価率</label><input type="number" id="costRate" placeholder="30" /><p class="unit">%</p></div>
+    <button class="calc-btn" onclick="calculate()">ボトルネックを診断する</button>
+  </div>
+
+  <div class="panel">
+    <p class="panel-title">診断結果</p>
+    <div class="copy-bar"><button class="sec-btn" onclick="copyResult()" id="copy-btn" style="display:none">📋 結果をコピー</button></div>
+    <div id="result-content">
+      <div class="empty-state"><div class="big">📊</div>左のデータを入力して<br>診断してください</div>
+    </div>
+  </div>
+
+  <div class="panel full-width" id="bottleneck-panel" style="display:none">
+    <p class="panel-title">ボトルネック分析</p>
+    <ul class="bottleneck-list" id="bottleneck-list"></ul>
+  </div>
+
+</div></div>
 </div>
 
-<!-- メインコンテンツ領域 -->
-<div id="app-content">
-  <header>
-    <div class="logo-wrap">
-      <span class="logo">Bottleneck</span>
-      <h1>店舗ボトルネック診断シミュレーター</h1>
-    </div>
-    <nav>
-      <button class="active" onclick="showTab('diagnose',this)">診断</button>
-      <button onclick="showTab('graph',this)">月次グラフ</button>
-      <button onclick="showTab('manual',this)">使い方</button>
-    </nav>
-  </header>
-
-  <!-- TAB: 診断 -->
-  <div id="tab-diagnose" class="tab-content active">
-  <div class="container"><div class="grid-2">
-
-    <div class="panel">
-      <p class="panel-title">データ入力</p>
-      <div class="field">
-        <label>対象月（月次グラフに自動反映されます）</label>
-        <input type="month" id="targetMonth" />
-      </div>
-      <div class="field-row">
-        <div class="field"><label>月間売上</label><input type="number" id="revenue" placeholder="1000000" /><p class="unit">円 / 月</p></div>
-        <div class="field"><label>月間客数</label><input type="number" id="customers" placeholder="300" /><p class="unit">人 / 月</p></div>
-      </div>
-      <div class="field"><label>客単価（売上÷客数 で自動計算）</label><input type="number" id="unitPrice" placeholder="3300" /><p class="unit">円</p></div>
-      <div class="field-row">
-        <div class="field"><label>1日の営業時間</label><input type="number" id="hours" placeholder="10" /><p class="unit">時間</p></div>
-        <div class="field"><label>月間営業日数</label><input type="number" id="days" placeholder="25" /><p class="unit">日</p></div>
-      </div>
-      <div class="field-row">
-        <div class="field"><label>アルバイト（同時稼働平均）</label><input type="number" id="staff" placeholder="3" /><p class="unit">人</p></div>
-        <div class="field"><label>平均時給</label><input type="number" id="wage" placeholder="1100" /><p class="unit">円</p></div>
-      </div>
-      <div class="field"><label>月間固定費</label><input type="number" id="fixed" placeholder="300000" /><p class="unit">円（家賃・光熱費など）</p></div>
-      <div class="field"><label>原価率</label><input type="number" id="costRate" placeholder="30" /><p class="unit">%（飲食 30〜35%、小売 50〜60% が目安）</p></div>
-      <button class="calc-btn" onclick="calculate()">ボトルネックを診断する</button>
-    </div>
-
-    <div class="panel">
-      <p class="panel-title">診断結果</p>
-      <div class="copy-bar"><button class="sec-btn" onclick="copyResult()" id="copy-btn" style="display:none">📋 結果をコピー</button></div>
-      <div id="result-content">
-        <div class="empty-state"><div class="big">📊</div>左のデータを入力して<br>診断してください</div>
+<!-- TAB: 月次グラフ（要パスワード・有料ゲート） -->
+<div id="tab-graph" class="tab-content">
+<div class="container">
+  
+  <!-- ロック状態の画面 -->
+  <div class="panel full-width" id="graph-lock-panel">
+    <div class="lock-box">
+      <div class="lock-icon">🔒</div>
+      <h2>月次管理・グラフ推移機能（プレミアム）</h2>
+      <p>毎月の売上・利益の推移データを蓄積し、経営ビジュアルダッシュボードとして管理できる機能です。<br>
+      ロックを解除するには、noteの有料記事内で配布されているパスワードを入力してください。</p>
+      <div class="inputs">
+        <input type="password" id="graph-pass" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter') unlockGraph()" />
+        <div id="lock-error" class="error-msg">パスワードが正しくありません</div>
+        <button class="calc-btn" onclick="unlockGraph()">ロックを解除する</button>
       </div>
     </div>
-
-    <div class="panel full-width" id="bottleneck-panel" style="display:none">
-      <p class="panel-title">ボトルネック分析</p>
-      <ul class="bottleneck-list" id="bottleneck-list"></ul>
-    </div>
-
-  </div></div>
   </div>
 
-  <!-- TAB: 月次グラフ -->
-  <div id="tab-graph" class="tab-content">
-  <div class="container"><div class="grid-2">
+  <!-- 解除後に表示される本来のコンテンツ -->
+  <div id="graph-unlocked-content" style="display:none;">
+    <div class="grid-2">
+      <div class="panel full-width">
+        <p class="panel-title">月次データ入力</p>
+        <div id="month-entries"></div>
+        <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
+          <button class="sec-btn" onclick="addMonth()">＋ 月を追加</button>
+          <button class="calc-btn" style="max-width:180px" onclick="drawChart()">グラフを更新</button>
+        </div>
+      </div>
 
-    <div class="panel full-width">
-      <p class="panel-title">月次データ入力</p>
-      <div id="month-entries"></div>
-      <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
-        <button class="sec-btn" onclick="addMonth()">＋ 月を追加</button>
-        <button class="calc-btn" style="max-width:180px" onclick="drawChart()">グラフを更新</button>
+      <div class="panel full-width" id="chart-panel" style="display:none">
+        <p class="panel-title">売上・利益 推移</p>
+        <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
       </div>
     </div>
-
-    <div class="panel full-width" id="chart-panel" style="display:none">
-      <p class="panel-title">売上・利益 推移</p>
-      <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
-    </div>
-
-  </div></div>
   </div>
 
-  <!-- TAB: 使い方 -->
-  <div id="tab-manual" class="tab-content">
-  <div class="container"><div class="manual">
-    <h2>このツールについて</h2>
-    <p>店舗の基本データを入力するだけで、<strong>FL比率・損益分岐点・人時売上高・客単価</strong>などの経営指標を自動計算し、どこにボトルネックがあるかを即座に診断します。</p>
-    <h2>月次グラフの使い方</h2>
-    <ol>
-      <li>「診断」タブで「対象月」を指定して診断すると、自動的に「月次グラフ」にデータが蓄積されます。</li>
-      <li>「グラフを更新」ボタンを押すことで、売上と営業利益の推移が可視化されます。</li>
-    </ol>
-  </div></div>
-  </div>
+</div>
+</div>
+
+<!-- TAB: 使い方 -->
+<div id="tab-manual" class="tab-content">
+<div class="container"><div class="manual">
+  <h2>このツールについて</h2>
+  <p>店舗の基本データを入力するだけで、<strong>FL比率・損益分岐点・人時売上高・客単価</strong>などの経営指標を自動計算し、どこにボトルネックがあるかを即座に診断します。</p>
+  <h2>月次グラフの使い方（有料機能）</h2>
+  <p>「診断」タブで「対象月」を指定して診断を行うと、自動的に「月次グラフ」へデータが蓄積されます。複数月のトレンド（推移）を追うことで、実施した改善施策の効果を検証できます。</p>
+</div></div>
 </div>
 
 <script>
-// パスワードチェック処理
-function checkPassword() {
-  const input = document.getElementById('password-input').value;
-  const errorMsg = document.getElementById('auth-error');
-  
-  if (input === 'HR2026') {
-    document.getElementById('auth-overlay').style.display = 'none';
-    document.getElementById('app-content').style.display = 'block';
-    // ログイン成功後にデフォルトの月をセット
-    initDefaultMonth();
-  } else {
-    errorMsg.style.display = 'block';
-    document.getElementById('password-input').value = '';
-  }
-}
+// グローバルでのロック状態管理
+let isPremiumUnlocked = false;
 
-// 初期状態の年月をセットする関数
-function initDefaultMonth() {
-  const now = new Date();
-  const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  document.getElementById('targetMonth').value = currentYm;
-}
+// ページ読み込み時に初期月をセット
+const now = new Date();
+document.getElementById('targetMonth').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
 function showTab(id,btn){
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+id).classList.add('active');
   btn.classList.add('active');
+}
+
+// パスワード照合処理
+function unlockGraph() {
+  const pw = document.getElementById('graph-pass').value;
+  const errorMsg = document.getElementById('lock-error');
+  
+  if (pw === 'HR2026') {
+    isPremiumUnlocked = true;
+    document.getElementById('graph-lock-panel').style.display = 'none';
+    document.getElementById('graph-unlocked-content').style.display = 'block';
+    
+    // ロック解除時に保留されていたデータがあれば反映
+    if (window._pendingSync) {
+      const p = window._pendingSync;
+      syncToGraphTab(p.month, p.revenue, p.fixed, p.fl);
+      window._pendingSync = null; 
+    }
+  } else {
+    errorMsg.style.display = 'block';
+    document.getElementById('graph-pass').value = '';
+  }
 }
 
 function fmt(n){return Math.round(n).toLocaleString('ja-JP');}
@@ -337,7 +312,13 @@ function calculate(){
   document.getElementById('copy-btn').style.display='inline-block';
   window._last={revenue,customers,unitPrice,profit,flRatio,breakEven,laborPerHour,marginRate};
 
-  syncToGraphTab(targetMonth, revenue, fixed, fl);
+  // プレミアムがアンロックされている場合のみ月次グラフに自動同期。
+  // 未解除の場合は、後で反映させるために一時保存のみ行う。
+  if (isPremiumUnlocked) {
+    syncToGraphTab(targetMonth, revenue, fixed, fl);
+  } else {
+    window._pendingSync = { month: targetMonth, revenue, fixed, fl };
+  }
 }
 
 function syncToGraphTab(month, revenue, fixed, fl) {
