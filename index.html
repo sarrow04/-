@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>離職リスク スコアリングツール</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #1a3354;
+    --blue: #2563a8;
+    --blue-light: #dbeafe;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --amber: #d97706;
+    --amber-bg: #fffbeb;
+    --green: #059669;
+    --green-bg: #ecfdf5;
+    --gray-50: #f8fafc;
+    --gray-100: #f1f5f9;
+    --gray-200: #e2e8f0;
+    --gray-400: #94a3b8;
+    --gray-600: #475569;
+    --gray-800: #1e293b;
+    --radius: 12px;
+    --shadow: 0 1px 6px rgba(0,0,0,0.08);
+  }
+
+  body {
+    font-family: 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+    background: var(--gray-100);
+    color: var(--gray-800);
+    min-height: 100vh;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, var(--navy) 0%, #2d5f9a 100%);
+    padding: 32px 20px 28px;
+    color: #fff;
+  }
+  .header-inner { max-width: 720px; margin: 0 auto; }
+  .header-eyebrow {
+    font-size: 11px; letter-spacing: 3px; opacity: 0.6;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .header h1 { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+  .header p { font-size: 13px; opacity: 0.7; line-height: 1.6; }
+
+  /* Main */
+  .main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+
+  /* Summary Grid */
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 10px; margin-bottom: 20px;
+  }
+  .summary-card {
+    background: #fff; border-radius: var(--radius);
+    padding: 16px 12px; text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .summary-card .label { font-size: 11px; color: var(--gray-400); margin-bottom: 6px; }
+  .summary-card .value { font-size: 22px; font-weight: 800; }
+  .summary-card .sub { font-size: 11px; color: var(--gray-400); margin-top: 2px; }
+
+  /* Distribution */
+  .dist-card {
+    background: #fff; border-radius: var(--radius);
+    padding: 20px; margin-bottom: 20px; box-shadow: var(--shadow);
+  }
+  .dist-card h2 { font-size: 14px; font-weight: 700; margin-bottom: 16px; }
+  .dist-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .dist-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .dist-label { font-size: 13px; color: var(--gray-600); width: 170px; flex-shrink: 0; }
+  .dist-bar-wrap { flex: 1; background: var(--gray-200); border-radius: 99px; height: 7px; overflow: hidden; }
+  .dist-bar { height: 100%; border-radius: 99px; transition: width 1s ease; }
+  .dist-count { font-size: 13px; font-weight: 700; width: 28px; text-align: right; }
+
+  /* Controls */
+  .controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .filter-btn {
+    padding: 7px 15px; border-radius: 99px; border: none;
+    cursor: pointer; font-size: 13px; font-weight: 600;
+    background: #fff; color: var(--gray-600);
+    box-shadow: var(--shadow); transition: all 0.15s;
+  }
+  .filter-btn.active { background: var(--navy); color: #fff; }
+  .sort-select {
+    margin-left: auto; padding: 8px 12px; border-radius: 8px;
+    border: 1px solid var(--gray-200); font-size: 13px;
+    color: var(--gray-600); background: #fff; cursor: pointer;
+  }
+
+  /* Employee Cards */
+  .emp-card {
+    background: #fff; border-radius: var(--radius);
+    border: 1.5px solid var(--gray-200);
+    margin-bottom: 12px; overflow: hidden;
+    box-shadow: var(--shadow); transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .emp-card.open { box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+
+  .emp-header {
+    padding: 16px 20px; cursor: pointer;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .rank-badge {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; color: #fff; flex-shrink: 0;
+  }
+  .emp-info { flex: 1; min-width: 0; }
+  .emp-name-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 8px; flex-wrap: wrap;
+  }
+  .emp-name { font-weight: 700; font-size: 16px; }
+  .dept-tag {
+    font-size: 11px; color: var(--gray-400);
+    background: var(--gray-100); padding: 2px 8px; border-radius: 99px;
+  }
+  .risk-tag {
+    font-size: 12px; font-weight: 700;
+    padding: 3px 10px; border-radius: 99px; margin-left: auto;
+  }
+  .chevron { color: var(--gray-400); font-size: 14px; flex-shrink: 0; transition: transform 0.2s; }
+  .emp-card.open .chevron { transform: rotate(180deg); }
+
+  /* Score Bar */
+  .score-bar-wrap { width: 100%; }
+  .score-bar-top { display: flex; justify-content: space-between; margin-bottom: 5px; }
+  .score-bar-top span:first-child { font-size: 12px; color: var(--gray-400); }
+  .score-bar-top .score-val { font-size: 15px; font-weight: 800; }
+  .score-track { background: var(--gray-200); border-radius: 99px; height: 8px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 99px; transition: width 0.8s cubic-bezier(.4,0,.2,1); }
+
+  /* Detail Panel */
+  .emp-detail { padding: 0 20px 20px; border-top: 1px solid var(--gray-100); display: none; }
+  .emp-card.open .emp-detail { display: block; }
+
+  .metrics-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 10px; margin: 16px 0;
+  }
+  .metric-cell {
+    border-radius: 10px; padding: 12px;
+    border: 1px solid var(--gray-200); text-align: center;
+    background: var(--gray-50);
+  }
+  .metric-cell.warn { background: var(--red-bg); border-color: rgba(220,38,38,0.25); }
+  .metric-cell.warn-amber { background: var(--amber-bg); border-color: rgba(217,119,6,0.25); }
+  .metric-label { font-size: 11px; color: var(--gray-400); margin-bottom: 5px; }
+  .metric-val { font-size: 18px; font-weight: 700; color: var(--gray-800); }
+  .metric-cell.warn .metric-val { color: var(--red); }
+  .metric-cell.warn-amber .metric-val { color: var(--amber); }
+
+  .advice-box {
+    border-radius: 10px; padding: 14px 16px;
+    background: var(--gray-50);
+  }
+  .advice-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; color: var(--gray-800); }
+  .advice-item { font-size: 13px; color: var(--gray-600); line-height: 1.6; margin-bottom: 6px; padding-left: 4px; }
+  .advice-item:last-child { margin-bottom: 0; }
+
+  .footer-note {
+    text-align: center; font-size: 12px; color: var(--gray-400);
+    margin-top: 24px; line-height: 1.8;
+  }
+
+  @media (max-width: 480px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .header h1 { font-size: 20px; }
+    .dist-label { width: 130px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-eyebrow">HR Analytics Tool</div>
+    <h1>離職リスク スコアリング</h1>
+    <p>勤怠・満足度データから社員の離職リスクを自動算出します</p>
+  </div>
+</div>
+
+<div class="main">
+  <div class="summary-grid" id="summaryGrid"></div>
+  <div class="dist-card">
+    <h2>リスク分布</h2>
+    <div id="distRows"></div>
+  </div>
+  <div class="controls">
+    <button class="filter-btn active" data-filter="all">全員</button>
+    <button class="filter-btn" data-filter="high">🔴 高リスク</button>
+    <button class="filter-btn" data-filter="mid">🟡 中リスク</button>
+    <button class="filter-btn" data-filter="low">🟢 低リスク</button>
+    <select class="sort-select" id="sortSelect">
+      <option value="score">スコア順</option>
+      <option value="name">名前順</option>
+    </select>
+  </div>
+  <div id="empList"></div>
+  <div class="footer-note">
+    ※ このツールはサンプルデータで動作しています。<br>
+    実際のデータに差し替えてご利用ください。
+  </div>
+</div>
+
+<script>
+const EMPLOYEES = [
+  { name:"田中 健太", dept:"営業部", overtime:52, paidLeave:15, lateCount:4, tenure:1.2, satisfaction:2, absences:3 },
+  { name:"佐藤 美咲", dept:"人事部", overtime:8,  paidLeave:85, lateCount:0, tenure:6.5, satisfaction:4, absences:0 },
+  { name:"鈴木 拓也", dept:"開発部", overtime:38, paidLeave:40, lateCount:1, tenure:2.1, satisfaction:3, absences:1 },
+  { name:"高橋 由美", dept:"営業部", overtime:61, paidLeave:10, lateCount:6, tenure:0.8, satisfaction:2, absences:5 },
+  { name:"伊藤 誠",   dept:"総務部", overtime:12, paidLeave:70, lateCount:0, tenure:9.0, satisfaction:5, absences:0 },
+  { name:"渡辺 さくら",dept:"開発部", overtime:45, paidLeave:25, lateCount:2, tenure:1.5, satisfaction:3, absences:2 },
+  { name:"中村 浩二", dept:"営業部", overtime:70, paidLeave:5,  lateCount:8, tenure:0.5, satisfaction:1, absences:7 },
+  { name:"小林 陽子", dept:"人事部", overtime:5,  paidLeave:90, lateCount:0, tenure:12.0,satisfaction:5, absences:0 },
+  { name:"加藤 龍",   dept:"開発部", overtime:30, paidLeave:55, lateCount:1, tenure:3.2, satisfaction:4, absences:1 },
+  { name:"山田 花",   dept:"総務部", overtime:48, paidLeave:20, lateCount:3, tenure:1.0, satisfaction:2, absences:4 },
+];
+
+function calcScore(e) {
+  let s = 0;
+  if (e.overtime >= 60) s += 30; else if (e.overtime >= 45) s += 20; else if (e.overtime >= 30) s += 10;
+  if (e.paidLeave <= 20) s += 25; else if (e.paidLeave <= 40) s += 15; else if (e.paidLeave <= 60) s += 5;
+  if (e.lateCount >= 6) s += 20; else if (e.lateCount >= 3) s += 12; else if (e.lateCount >= 1) s += 5;
+  if (e.tenure <= 1) s += 15; else if (e.tenure <= 2) s += 8;
+  if (e.satisfaction <= 1) s += 20; else if (e.satisfaction <= 2) s += 12; else if (e.satisfaction <= 3) s += 5;
+  if (e.absences >= 5) s += 15; else if (e.absences >= 3) s += 8; else if (e.absences >= 1) s += 3;
+  return Math.min(s, 100);
+}
+
+function getRisk(score) {
+  if (score >= 70) return { label:"高リスク", color:"#dc2626", bg:"#fef2f2", barColor:"linear-gradient(90deg,#f87171,#dc2626)" };
+  if (score >= 40) return { label:"中リスク", color:"#d97706", bg:"#fffbeb", barColor:"linear-gradient(90deg,#fcd34d,#d97706)" };
+  return { label:"低リスク", color:"#059669", bg:"#ecfdf5", barColor:"linear-gradient(90deg,#34d399,#059669)" };
+}
+
+function getAdvices(e) {
+  const a = [];
+  if (e.overtime >= 45) a.push("残業時間が多く、燃え尽き症候群のリスクがあります。業務分担の見直しを検討してください。");
+  if (e.paidLeave <= 30) a.push("有給取得率が低い状態です。取得促進の仕組みづくりが必要です。");
+  if (e.lateCount >= 3) a.push("遅刻が目立ちます。モチベーション低下や体調不良のサインの可能性があります。");
+  if (e.tenure <= 1) a.push("入社1年以内は早期離職リスクが高い時期です。定期的な1on1を推奨します。");
+  if (e.satisfaction <= 2) a.push("満足度が低い状態です。面談を通じて不満の原因を特定することを優先してください。");
+  if (e.absences >= 3) a.push("欠勤が多く、心身の不調が疑われます。産業医や上長との連携を検討してください。");
+  if (a.length === 0) a.push("現時点で大きなリスク要因は見当たりません。引き続き良好な状態を維持してください。");
+  return a;
+}
+
+function metricWarnClass(key, val) {
+  if (key === 'overtime' && val >= 45) return 'warn';
+  if (key === 'paidLeave' && val <= 30) return 'warn';
+  if (key === 'lateCount' && val >= 3) return 'warn';
+  if (key === 'tenure' && val <= 1) return 'warn-amber';
+  if (key === 'satisfaction' && val <= 2) return 'warn';
+  if (key === 'absences' && val >= 3) return 'warn';
+  return '';
+}
+
+const scored = EMPLOYEES.map(e => ({ ...e, score: calcScore(e) }));
+
+// Summary
+function renderSummary() {
+  const avg = Math.round(scored.reduce((s,e) => s+e.score, 0) / scored.length);
+  const high = scored.filter(e=>e.score>=70).length;
+  const mid  = scored.filter(e=>e.score>=40&&e.score<70).length;
+  const low  = scored.filter(e=>e.score<40).length;
+  const cards = [
+    { label:"平均スコア", value:`${avg}点`, color:"#2563a8", sub:"全社員" },
+    { label:"高リスク",   value:`${high}名`, color:"#dc2626", sub:"要対応" },
+    { label:"中リスク",   value:`${mid}名`,  color:"#d97706", sub:"要注意" },
+    { label:"低リスク",   value:`${low}名`,  color:"#059669", sub:"良好"   },
+  ];
+  document.getElementById('summaryGrid').innerHTML = cards.map(c=>`
+    <div class="summary-card">
+      <div class="label">${c.label}</div>
+      <div class="value" style="color:${c.color}">${c.value}</div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join('');
+
+  const rows = [
+    { label:"高リスク（70点以上）", count:high, color:"#dc2626" },
+    { label:"中リスク（40〜69点）",  count:mid,  color:"#d97706" },
+    { label:"低リスク（39点以下）",  count:low,  color:"#059669" },
+  ];
+  document.getElementById('distRows').innerHTML = rows.map(r=>`
+    <div class="dist-row">
+      <div class="dist-dot" style="background:${r.color}"></div>
+      <div class="dist-label">${r.label}</div>
+      <div class="dist-bar-wrap">
+        <div class="dist-bar" style="width:${(r.count/scored.length)*100}%;background:${r.color}"></div>
+      </div>
+      <div class="dist-count" style="color:${r.color}">${r.count}名</div>
+    </div>`).join('');
+}
+
+// Cards
+let currentFilter = 'all';
+let currentSort = 'score';
+
+function getFiltered() {
+  let data = [...scored];
+  if (currentFilter === 'high') data = data.filter(e=>e.score>=70);
+  else if (currentFilter === 'mid') data = data.filter(e=>e.score>=40&&e.score<70);
+  else if (currentFilter === 'low') data = data.filter(e=>e.score<40);
+  if (currentSort === 'score') data.sort((a,b)=>b.score-a.score);
+  else data.sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+  return data;
+}
+
+function renderCards() {
+  const data = getFiltered();
+  const metrics = [
+    { key:'overtime',    label:'月残業',    unit:'h' },
+    { key:'paidLeave',   label:'有給取得率', unit:'%' },
+    { key:'lateCount',   label:'遅刻回数',  unit:'回' },
+    { key:'tenure',      label:'在籍年数',  unit:'年' },
+    { key:'satisfaction',label:'満足度',    unit:'/5' },
+    { key:'absences',    label:'欠勤回数',  unit:'回' },
+  ];
+  document.getElementById('empList').innerHTML = data.map((e, i) => {
+    const risk = getRisk(e.score);
+    const advices = getAdvices(e);
+    return `
+    <div class="emp-card" id="card-${i}" style="--risk-color:${risk.color}">
+      <div class="emp-header" onclick="toggleCard(${i})">
+        <div class="rank-badge" style="background:${risk.color}">${i+1}</div>
+        <div class="emp-info">
+          <div class="emp-name-row">
+            <span class="emp-name">${e.name}</span>
+            <span class="dept-tag">${e.dept}</span>
+            <span class="risk-tag" style="color:${risk.color};background:${risk.bg}">${risk.label}</span>
+          </div>
+          <div class="score-bar-wrap">
+            <div class="score-bar-top">
+              <span>リスクスコア</span>
+              <span class="score-val" style="color:${risk.color}">${e.score}点</span>
+            </div>
+            <div class="score-track">
+              <div class="score-fill" style="width:${e.score}%;background:${risk.barColor}"></div>
+            </div>
+          </div>
+        </div>
+        <div class="chevron">▼</div>
+      </div>
+      <div class="emp-detail">
+        <div class="metrics-grid">
+          ${metrics.map(m=>`
+            <div class="metric-cell ${metricWarnClass(m.key, e[m.key])}">
+              <div class="metric-label">${m.label}</div>
+              <div class="metric-val">${e[m.key]}${m.unit}</div>
+            </div>`).join('')}
+        </div>
+        <div class="advice-box" style="border-left:4px solid ${risk.color}">
+          <div class="advice-title">💡 推奨アクション</div>
+          ${advices.map(a=>`<div class="advice-item">• ${a}</div>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCard(i) {
+  const card = document.getElementById(`card-${i}`);
+  card.classList.toggle('open');
+}
+
+// Filter buttons
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderCards();
+  });
+});
+
+document.getElementById('sortSelect').addEventListener('change', e => {
+  currentSort = e.target.value;
+  renderCards();
+});
+
+renderSummary();
+renderCards();
+</script>
+</body>
+</html>
