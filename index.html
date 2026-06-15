@@ -12,19 +12,48 @@
       --surface: #181c27;
       --surface2: #1e2333;
       --border: #2a3050;
-      
-      /* 視認性を向上させたアクセントカラー（高コントラスト） */
-      --accent: #5effb8;       /* 良好：鮮やかなミントグリーン */
-      --accent2: #ff7b7b;      /* 要改善：明るいコーラルレッド */
-      --accent3: #ffd97d;      /* 注意：視認性の高いパステルイエロー */
-      
+      --accent: #5effb8;
+      --accent2: #ff7b7b;
+      --accent3: #ffd97d;
       --text: #e8ecf4;
-      --muted: #94a1c1;        /* テキストの沈み込みを防ぐため少し明るく修正 */
+      --muted: #94a1c1;
       --font-data: 'Space Grotesk', sans-serif;
       --font-body: 'Noto Sans JP', sans-serif;
     }
     *{box-sizing:border-box;margin:0;padding:0;}
     body{background:var(--bg);color:var(--text);font-family:var(--font-body);min-height:100vh;padding-bottom:80px;}
+
+    /* 認証用フォームのスタイル */
+    #auth-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--bg);
+      display: flex; justify-content: center; align-items: center;
+      z-index: 1000;
+    }
+    .auth-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 36px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+    .auth-box h2 {
+      font-size: 18px; margin-bottom: 20px; font-weight: 700;
+    }
+    .auth-box input[type=password] {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 14px; color: var(--text);
+      font-family: var(--font-data); font-size: 16px; font-weight: 600;
+      outline: none; text-align: center; margin-bottom: 16px; transition: border-color .2s;
+    }
+    .auth-box input:focus { border-color: var(--accent); }
+    .error-msg { color: var(--accent2); font-size: 13px; margin-top: -8px; margin-bottom: 12px; display: none; }
+
+    /* メインコンテンツ（初期状態は非表示） */
+    #app-content { display: none; }
 
     header{border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:100;}
     .logo-wrap{display:flex;align-items:baseline;gap:14px;}
@@ -63,7 +92,6 @@
     .metric-label{font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:.06em;}
     .metric-value{font-family:var(--font-data);font-size:22px;font-weight:700;}
     
-    /* 文字色のコントラストと太さを強化 */
     .metric-value.good{color:var(--accent);text-shadow: 0 0 1px rgba(94,255,184,0.2);}
     .metric-value.warn{color:var(--accent3);text-shadow: 0 0 1px rgba(255,217,125,0.2);}
     .metric-value.bad{color:var(--accent2);text-shadow: 0 0 1px rgba(255,123,123,0.2);}
@@ -74,7 +102,6 @@
     .bottleneck-item:last-child{border-bottom:none;}
     .bn-tag{flex-shrink:0;font-family:var(--font-data);font-size:10px;font-weight:700;letter-spacing:.1em;padding:4px 10px;border-radius:4px;text-transform:uppercase;margin-top:2px;}
     
-    /* タグ内の文字の認識率を高めるため、背景を少し濃くして文字色をはっきりと */
     .bn-tag.high{background:rgba(255,123,123,0.22);color:var(--accent2);}
     .bn-tag.mid{background:rgba(255,217,125,0.22);color:var(--accent3);}
     .bn-tag.low{background:rgba(94,255,184,0.22);color:var(--accent);}
@@ -115,174 +142,132 @@
 </head>
 <body>
 
-<header>
-  <div class="logo-wrap">
-    <span class="logo">Bottleneck</span>
-    <h1>店舗ボトルネック診断シミュレーター</h1>
+<!-- パスワード認証用オーバーレイ -->
+<div id="auth-overlay">
+  <div class="auth-box">
+    <h2>シミュレーターログイン</h2>
+    <input type="password" id="password-input" placeholder="パスワードを入力" onkeydown="if(event.key==='Enter') checkPassword()" />
+    <div id="auth-error" class="error-msg">パスワードが正しくありません</div>
+    <button class="calc-btn" onclick="checkPassword()">入室する</button>
   </div>
-  <nav>
-    <button class="active" onclick="showTab('diagnose',this)">診断</button>
-    <button onclick="showTab('graph',this)">月次グラフ</button>
-    <button onclick="showTab('manual',this)">使い方</button>
-  </nav>
-</header>
-
-<div id="tab-diagnose" class="tab-content active">
-<div class="container"><div class="grid-2">
-
-  <div class="panel">
-    <p class="panel-title">データ入力</p>
-    <div class="field">
-      <label>対象月（月次グラフに自動反映されます）</label>
-      <input type="month" id="targetMonth" />
-    </div>
-    <div class="field-row">
-      <div class="field"><label>月間売上</label><input type="number" id="revenue" placeholder="1000000" /><p class="unit">円 / 月</p></div>
-      <div class="field"><label>月間客数</label><input type="number" id="customers" placeholder="300" /><p class="unit">人 / 月</p></div>
-    </div>
-    <div class="field"><label>客単価（売上÷客数 で自動計算）</label><input type="number" id="unitPrice" placeholder="3300" /><p class="unit">円</p></div>
-    <div class="field-row">
-      <div class="field"><label>1日の営業時間</label><input type="number" id="hours" placeholder="10" /><p class="unit">時間</p></div>
-      <div class="field"><label>月間営業日数</label><input type="number" id="days" placeholder="25" /><p class="unit">日</p></div>
-    </div>
-    <div class="field-row">
-      <div class="field"><label>アルバイト（同時稼働平均）</label><input type="number" id="staff" placeholder="3" /><p class="unit">人</p></div>
-      <div class="field"><label>平均時給</label><input type="number" id="wage" placeholder="1100" /><p class="unit">円</p></div>
-    </div>
-    <div class="field"><label>月間固定費</label><input type="number" id="fixed" placeholder="300000" /><p class="unit">円（家賃・光熱費など）</p></div>
-    <div class="field"><label>原価率</label><input type="number" id="costRate" placeholder="30" /><p class="unit">%（飲食 30〜35%、小売 50〜60% が目安）</p></div>
-    <button class="calc-btn" onclick="calculate()">ボトルネックを診断する</button>
-  </div>
-
-  <div class="panel">
-    <p class="panel-title">診断結果</p>
-    <div class="copy-bar"><button class="sec-btn" onclick="copyResult()" id="copy-btn" style="display:none">📋 結果をコピー</button></div>
-    <div id="result-content">
-      <div class="empty-state"><div class="big">📊</div>左のデータを入力して<br>診断してください</div>
-    </div>
-  </div>
-
-  <div class="panel full-width" id="bottleneck-panel" style="display:none">
-    <p class="panel-title">ボトルネック分析</p>
-    <ul class="bottleneck-list" id="bottleneck-list"></ul>
-  </div>
-
-</div></div>
 </div>
 
-<div id="tab-graph" class="tab-content">
-<div class="container"><div class="grid-2">
-
-  <div class="panel full-width">
-    <p class="panel-title">月次データ入力</p>
-    <div id="month-entries"></div>
-    <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
-      <button class="sec-btn" onclick="addMonth()">＋ 月を追加</button>
-      <button class="calc-btn" style="max-width:180px" onclick="drawChart()">グラフを更新</button>
+<!-- メインコンテンツ領域 -->
+<div id="app-content">
+  <header>
+    <div class="logo-wrap">
+      <span class="logo">Bottleneck</span>
+      <h1>店舗ボトルネック診断シミュレーター</h1>
     </div>
+    <nav>
+      <button class="active" onclick="showTab('diagnose',this)">診断</button>
+      <button onclick="showTab('graph',this)">月次グラフ</button>
+      <button onclick="showTab('manual',this)">使い方</button>
+    </nav>
+  </header>
+
+  <!-- TAB: 診断 -->
+  <div id="tab-diagnose" class="tab-content active">
+  <div class="container"><div class="grid-2">
+
+    <div class="panel">
+      <p class="panel-title">データ入力</p>
+      <div class="field">
+        <label>対象月（月次グラフに自動反映されます）</label>
+        <input type="month" id="targetMonth" />
+      </div>
+      <div class="field-row">
+        <div class="field"><label>月間売上</label><input type="number" id="revenue" placeholder="1000000" /><p class="unit">円 / 月</p></div>
+        <div class="field"><label>月間客数</label><input type="number" id="customers" placeholder="300" /><p class="unit">人 / 月</p></div>
+      </div>
+      <div class="field"><label>客単価（売上÷客数 で自動計算）</label><input type="number" id="unitPrice" placeholder="3300" /><p class="unit">円</p></div>
+      <div class="field-row">
+        <div class="field"><label>1日の営業時間</label><input type="number" id="hours" placeholder="10" /><p class="unit">時間</p></div>
+        <div class="field"><label>月間営業日数</label><input type="number" id="days" placeholder="25" /><p class="unit">日</p></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>アルバイト（同時稼働平均）</label><input type="number" id="staff" placeholder="3" /><p class="unit">人</p></div>
+        <div class="field"><label>平均時給</label><input type="number" id="wage" placeholder="1100" /><p class="unit">円</p></div>
+      </div>
+      <div class="field"><label>月間固定費</label><input type="number" id="fixed" placeholder="300000" /><p class="unit">円（家賃・光熱費など）</p></div>
+      <div class="field"><label>原価率</label><input type="number" id="costRate" placeholder="30" /><p class="unit">%（飲食 30〜35%、小売 50〜60% が目安）</p></div>
+      <button class="calc-btn" onclick="calculate()">ボトルネックを診断する</button>
+    </div>
+
+    <div class="panel">
+      <p class="panel-title">診断結果</p>
+      <div class="copy-bar"><button class="sec-btn" onclick="copyResult()" id="copy-btn" style="display:none">📋 結果をコピー</button></div>
+      <div id="result-content">
+        <div class="empty-state"><div class="big">📊</div>左のデータを入力して<br>診断してください</div>
+      </div>
+    </div>
+
+    <div class="panel full-width" id="bottleneck-panel" style="display:none">
+      <p class="panel-title">ボトルネック分析</p>
+      <ul class="bottleneck-list" id="bottleneck-list"></ul>
+    </div>
+
+  </div></div>
   </div>
 
-  <div class="panel full-width" id="chart-panel" style="display:none">
-    <p class="panel-title">売上・利益 推移</p>
-    <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+  <!-- TAB: 月次グラフ -->
+  <div id="tab-graph" class="tab-content">
+  <div class="container"><div class="grid-2">
+
+    <div class="panel full-width">
+      <p class="panel-title">月次データ入力</p>
+      <div id="month-entries"></div>
+      <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
+        <button class="sec-btn" onclick="addMonth()">＋ 月を追加</button>
+        <button class="calc-btn" style="max-width:180px" onclick="drawChart()">グラフを更新</button>
+      </div>
+    </div>
+
+    <div class="panel full-width" id="chart-panel" style="display:none">
+      <p class="panel-title">売上・利益 推移</p>
+      <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+    </div>
+
+  </div></div>
   </div>
 
-</div></div>
-</div>
-
-<div id="tab-manual" class="tab-content">
-<div class="container"><div class="manual">
-
-  <h2>このツールについて</h2>
-  <p>店舗の基本データを入力するだけで、<strong>FL比率・損益分岐点・人時売上高・客単価</strong>などの経営指標を自動計算し、どこにボトルネックがあるかを即座に診断します。専門知識がなくても「数字で課題を見つける」習慣をサポートします。</p>
-
-  <h2>入力項目の説明</h2>
-  <table>
-    <tr><th>項目</th><th>説明</th><th>入力例</th></tr>
-    <tr><td>対象月</td><td>診断を行う年月。入力すると月次グラフのデータに自動同期されます</td><td>2026-06</td></tr>
-    <tr><td>月間売上</td><td>その月の総売上（税抜き推奨）</td><td>1,000,000 円</td></tr>
-    <tr><td>月間客数</td><td>月間の延べ来店人数</td><td>300 人</td></tr>
-    <tr><td>客単価</td><td>1人あたりの平均購入額。売上と客数を両方入れると自動計算されます</td><td>3,300 円</td></tr>
-    <tr><td>1日の営業時間</td><td>開店〜閉店までの時間数</td><td>10 時間</td></tr>
-    <tr><td>月間営業日数</td><td>実際に営業した日数</td><td>25 日</td></tr>
-    <tr><td>アルバイト人数</td><td>同時に稼働している平均人数（社員は別途換算）</td><td>3 人</td></tr>
-    <tr><td>平均時給</td><td>スタッフ全員の平均時給</td><td>1,100 円</td></tr>
-    <tr><td>月間固定費</td><td>家賃・光熱費・リース料など変動しない費用の合計</td><td>300,000 円</td></tr>
-    <tr><td>原価率</td><td>売上に対する原材料費の割合</td><td>30 %</td></tr>
-  </table>
-
-  <h2>計算される指標</h2>
-
-  <h3>FL比率</h3>
-  <div class="formula">FL比率 = (人件費 + 原価) ÷ 売上 × 100</div>
-  <div class="badge-row">
-    <span class="badge good">🟢 55%以下：優良</span>
-    <span class="badge warn">🟡 55〜65%：標準（要ウォッチ）</span>
-    <span class="badge bad">🔴 65%超：危険ゾーン</span>
+  <!-- TAB: 使い方 -->
+  <div id="tab-manual" class="tab-content">
+  <div class="container"><div class="manual">
+    <h2>このツールについて</h2>
+    <p>店舗の基本データを入力するだけで、<strong>FL比率・損益分岐点・人時売上高・客単価</strong>などの経営指標を自動計算し、どこにボトルネックがあるかを即座に診断します。</p>
+    <h2>月次グラフの使い方</h2>
+    <ol>
+      <li>「診断」タブで「対象月」を指定して診断すると、自動的に「月次グラフ」にデータが蓄積されます。</li>
+      <li>「グラフを更新」ボタンを押すことで、売上と営業利益の推移が可視化されます。</li>
+    </ol>
+  </div></div>
   </div>
-  <p>飲食店の健全経営の目安は <strong>60%以下</strong> と言われています。</p>
-
-  <h3>損益分岐点売上</h3>
-  <div class="formula">損益分岐点 = 固定費 ÷ (1 − 変動費率)</div>
-  <p>この金額を下回ると赤字になります。月の売上目標設定の基準として使ってください。</p>
-
-  <h3>人時売上高</h3>
-  <div class="formula">人時売上高 = 売上 ÷ (スタッフ人数 × 総労働時間)</div>
-  <div class="badge-row">
-    <span class="badge good">🟢 5,000円以上：良好</span>
-    <span class="badge warn">🟡 3,000〜5,000円：改善余地あり</span>
-    <span class="badge bad">🔴 3,000円未満：配置見直しが必要</span>
-  </div>
-
-  <h3>客単価</h3>
-  <div class="formula">客単価 = 売上 ÷ 客数</div>
-  <p>客単価が低い場合は、アップセル（追加注文の促進）やセット商品の導入が有効です。</p>
-
-  <h2>ボトルネック判定の見方</h2>
-  <div class="badge-row">
-    <span class="badge bad">🔴 要改善</span>
-    <span class="badge warn">🟡 注意</span>
-    <span class="badge good">🟢 良好</span>
-  </div>
-  <p><strong>要改善</strong> の項目から優先的に対処してください。すべて良好になることを目指しましょう。</p>
-
-  <h2>よくある改善パターン</h2>
-
-  <h3>FL比率が高い場合</h3>
-  <div class="tip">
-    <strong>人件費が高い</strong> → シフトの最適化、ピーク外の人員削減<br>
-    <strong>原価率が高い</strong> → 仕入れ見直し、廃棄ロスの削減、メニューの価格改定
-  </div>
-
-  <h3>損益分岐点を超えられない場合</h3>
-  <div class="tip">
-    <strong>客単価を上げる</strong> → メニュー構成・アップセル施策<br>
-    <strong>固定費を下げる</strong> → 家賃交渉、不要なリースの見直し<br>
-    <strong>客数を増やす</strong> → リピート施策、SNS活用
-  </div>
-
-  <h3>人時売上高が低い場合</h3>
-  <div class="tip">
-    <strong>ピーク時間帯を特定する</strong> → 混む時間帯だけ増員、閑散時は削減<br>
-    <strong>作業の効率化</strong> → 仕込みのタイミング見直し、マルチタスク化
-  </div>
-
-  <h2>月次グラフの使い方</h2>
-  <ol>
-    <li>「診断」タブで「対象月」を指定して診断すると、自動的に「月次グラフ」にデータが蓄積されます。</li>
-    <li>手動で微調整や別月のデータを加えたい場合は、「月次グラフ」タブから直接「＋ 月を追加」を行ってください。</li>
-    <li>「グラフを更新」ボタンを押すことで、売上と営業利益の推移が可視化されます。</li>
-  </ol>
-  <p>複数月のデータを入れることで、改善施策の効果を視覚的に確認できます。</p>
-
-</div></div>
 </div>
 
 <script>
-// 初期状態で現在の年月を設定
-const now = new Date();
-const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-document.getElementById('targetMonth').value = currentYm;
+// パスワードチェック処理
+function checkPassword() {
+  const input = document.getElementById('password-input').value;
+  const errorMsg = document.getElementById('auth-error');
+  
+  if (input === 'HR2026') {
+    document.getElementById('auth-overlay').style.display = 'none';
+    document.getElementById('app-content').style.display = 'block';
+    // ログイン成功後にデフォルトの月をセット
+    initDefaultMonth();
+  } else {
+    errorMsg.style.display = 'block';
+    document.getElementById('password-input').value = '';
+  }
+}
+
+// 初期状態の年月をセットする関数
+function initDefaultMonth() {
+  const now = new Date();
+  const currentYm = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  document.getElementById('targetMonth').value = currentYm;
+}
 
 function showTab(id,btn){
   document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
@@ -334,25 +319,13 @@ function calculate(){
     </div>`;
 
   const issues=[];
-  if(flRatio>65) issues.push({l:'high',t:'FL比率が高すぎます',s:`現在 ${flRatio.toFixed(1)}% — 65%以下を目指してください。人件費か原価に問題がある可能性があります。`});
-  else if(flRatio>55) issues.push({l:'mid',t:'FL比率がやや高めです',s:`現在 ${flRatio.toFixed(1)}% — 許容範囲ですが改善余地あり。`});
+  if(flRatio>65) issues.push({l:'high',t:'FL比率が高すぎます',s:`現在 ${flRatio.toFixed(1)}% — 65%以下を目指してください。`});
+  else if(flRatio>55) issues.push({l:'mid',t:'FL比率がやや高めです',s:`現在 ${flRatio.toFixed(1)}% — 改善余地あり。`});
   else issues.push({l:'low',t:'FL比率は健全です',s:`現在 ${flRatio.toFixed(1)}% — 良好な水準です。`});
 
-  if(profit<0) issues.push({l:'high',t:'赤字です',s:`月 ${fmt(Math.abs(profit))}円の損失。${breakEven!==Infinity?'損益分岐点まで '+fmt(breakEven-revenue)+'円の売上アップが必要です。':''}`});
-  else if(marginRate<5) issues.push({l:'mid',t:'利益率が低水準です',s:`利益率 ${marginRate.toFixed(1)}% — 固定費の見直しか売上増加が有効です。`});
-  else issues.push({l:'low',t:'黒字経営です',s:`利益率 ${marginRate.toFixed(1)}% — 現状維持しながらさらなる改善を目指しましょう。`});
-
-  if(staff>0){
-    if(laborPerHour<3000) issues.push({l:'high',t:'人時売上高が低いです',s:`${fmt(laborPerHour)}円/人時 — スタッフ配置・シフト設計の見直しを検討してください。`});
-    else if(laborPerHour<5000) issues.push({l:'mid',t:'人時売上高に改善余地があります',s:`${fmt(laborPerHour)}円/人時 — ピーク時間帯への集中配置が効果的です。`});
-    else issues.push({l:'low',t:'人時売上高は良好です',s:`${fmt(laborPerHour)}円/人時 — 効率的なスタッフ配置ができています。`});
-  }
-
-  if(breakEven!==Infinity&&revenue<breakEven)
-    issues.push({l:'high',t:'売上が損益分岐点を下回っています',s:`あと ${fmt(breakEven-revenue)}円 / 月の売上が必要です。客単価アップかリピート率改善を優先してください。`});
-
-  if(unitPrice>0&&unitPrice<1000)
-    issues.push({l:'mid',t:'客単価が低めです',s:`現在 ${fmt(unitPrice)}円 — セット販売やアップセル施策で単価向上を検討してください。`});
+  if(profit<0) issues.push({l:'high',t:'赤字です',s:`月 ${fmt(Math.abs(profit))}円の損失。`});
+  else if(marginRate<5) issues.push({l:'mid',t:'利益率が低水準です',s:`利益率 ${marginRate.toFixed(1)}% — 改善が必要です。`});
+  else issues.push({l:'low',t:'黒字経営です',s:`利益率 ${marginRate.toFixed(1)}% — 良好です。`});
 
   document.getElementById('bottleneck-list').innerHTML=issues.map(i=>`
     <li class="bottleneck-item">
@@ -364,7 +337,6 @@ function calculate(){
   document.getElementById('copy-btn').style.display='inline-block';
   window._last={revenue,customers,unitPrice,profit,flRatio,breakEven,laborPerHour,marginRate};
 
-  // 【追加機能】月次グラフタブの入力エリアへ自動反映
   syncToGraphTab(targetMonth, revenue, fixed, fl);
 }
 
@@ -374,7 +346,6 @@ function syncToGraphTab(month, revenue, fixed, fl) {
   const entries = entriesContainer.querySelectorAll('.month-entry');
   let exists = false;
 
-  // すでに同じ月が存在するかチェックし、あれば更新
   entries.forEach(e => {
     const inputs = e.querySelectorAll('input');
     if (inputs[0].value === month) {
@@ -385,12 +356,9 @@ function syncToGraphTab(month, revenue, fixed, fl) {
     }
   });
 
-  // 存在しなければ新しく行を追加して値をセット
   if (!exists) {
     addMonthRowWithValue(month, Math.round(revenue), Math.round(fixed), Math.round(fl));
   }
-
-  // 自動的にバックグラウンドでグラフも再描画
   drawChart(true);
 }
 
@@ -399,10 +367,10 @@ function addMonthRowWithValue(month, revenue, fixed, fl) {
   div.className = 'month-entry';
   div.innerHTML = `
     <div class="field"><label>対象月</label><input type="month" value="${month}" /></div>
-    <div class="field"><label>売上（円）</label><input type="number" value="${revenue}" placeholder="1000000" /></div>
-    <div class="field"><label>固定費（円）</label><input type="number" value="${fixed}" placeholder="300000" /></div>
-    <div class="field"><label>FL合計（円）</label><input type="number" value="${fl}" placeholder="550000" /></div>
-    <button class="del-btn" onclick="this.parentElement.remove()" title="削除">✕</button>`;
+    <div class="field"><label>売上（円）</label><input type="number" value="${revenue}" /></div>
+    <div class="field"><label>固定費（円）</label><input type="number" value="${fixed}" /></div>
+    <div class="field"><label>FL合計（円）</label><input type="number" value="${fl}" /></div>
+    <button class="del-btn" onclick="this.parentElement.remove()">✕</button>`;
   document.getElementById('month-entries').appendChild(div);
 }
 
@@ -410,11 +378,8 @@ function copyResult(){
   const r=window._last;if(!r)return;
   const lines=['【店舗ボトルネック診断結果】',
     `売上: ${fmt(r.revenue)}円`,
-    r.customers?`客数: ${fmt(r.customers)}人 / 客単価: ${fmt(r.unitPrice)}円`:'',
     `FL比率: ${r.flRatio.toFixed(1)}%`,
-    `営業利益: ${fmt(r.profit)}円（利益率 ${r.marginRate.toFixed(1)}%）`,
-    r.breakEven!==Infinity?`損益分岐点: ${fmt(r.breakEven)}円`:'',
-    r.laborPerHour?`人時売上高: ${fmt(r.laborPerHour)}円`:'',
+    `営業利益: ${fmt(r.profit)}円`,
   ].filter(Boolean);
   navigator.clipboard.writeText(lines.join('\n')).then(()=>{
     const b=document.getElementById('copy-btn');
@@ -434,10 +399,7 @@ function addMonth(){
 
 function drawChart(isSilent = false){
   const entries=document.querySelectorAll('.month-entry');
-  if(!entries.length){
-    if(!isSilent) alert('月のデータを追加してください');
-    return;
-  }
+  if(!entries.length){ if(!isSilent) alert('月のデータを追加してください'); return; }
   
   const dataList = [];
   entries.forEach(e=>{
@@ -451,9 +413,7 @@ function drawChart(isSilent = false){
     }
   });
 
-  // 月順にソートして並び順を整える
-  dataList.sort((a, b) => a.m.localeCaseInsensitiveCompare ? a.m.localeCaseInsensitiveCompare(b.m) : a.m.localeCompare(b.m));
-
+  dataList.sort((a, b) => a.m.localeCompare(b.m));
   if (dataList.length === 0) return;
 
   const labels = dataList.map(d => d.m);
@@ -471,7 +431,7 @@ function drawChart(isSilent = false){
     ]},
     options:{
       responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{labels:{color:'#94a1c1',font:{family:'Space Grotesk',size:12}}},
+      plugins:{legend:{labels:{color:'#94a1c1',font:{size:12}}},
         tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${Math.round(c.parsed.y).toLocaleString('ja-JP')}円`}}},
       scales:{
         x:{ticks:{color:'#94a1c1'},grid:{color:'#2a3050'}},
@@ -480,8 +440,6 @@ function drawChart(isSilent = false){
     }
   });
 }
-
-// 初期データのダミー生成を抑止し、スマートな運用ができるように変更
 </script>
 </body>
 </html>
