@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>店舗ボトルネック診断シミュレーター</title>
+  <title>店舗ボトルネック診断シミュレーター + レポート</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Space+Grotesk:wght@400;600;700&display=swap');
@@ -87,7 +87,6 @@
     .empty-state{text-align:center;color:var(--muted);font-size:14px;padding:40px 0;}
     .empty-state .big{font-family:var(--font-data);font-size:40px;margin-bottom:8px;}
 
-    /* 有料機能ゲート用スタイル */
     .lock-box {
       text-align: center;
       padding: 40px 20px;
@@ -116,6 +115,23 @@
     .badge.bad{background:rgba(255,123,123,0.15);color:var(--accent2);}
     .tip{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;font-size:13px;line-height:1.8;margin-bottom:12px;color:var(--muted);}
     .tip strong{color:var(--text);}
+
+    /* 印刷用レポートアレンジ設定 */
+    @media print {
+      body { background: #ffffff !important; color: #111111 !important; padding: 0; }
+      header, nav, .panel:not(#report-panel):not(#bottleneck-panel), .copy-bar, button, .unit, input { display: none !important; }
+      .container { max-width: 100%; padding: 0; }
+      .grid-2 { display: block; }
+      .panel { background: #ffffff !important; border: none !important; padding: 0; margin-bottom: 30px; color: #111111 !important; }
+      .panel-title { color: #111111 !important; border-bottom: 2px solid #111111; padding-bottom: 6px; font-size: 14px; margin-bottom: 15px; }
+      #bottleneck-panel, #report-panel { display: block !important; }
+      .bn-text { color: #111111 !important; font-size: 14px; }
+      .bn-sub { color: #555555 !important; font-size: 12px; }
+      .bn-tag { border: 1px solid #111111 !important; background: transparent !important; color: #111111 !important; }
+      .report-box { background: #f5f7fa !important; border-left: 4px solid #111111 !important; color: #111111 !important; }
+      .report-box p, .report-box h3 { color: #111111 !important; }
+      .action-item { color: #111111 !important; }
+    }
   </style>
 </head>
 <body>
@@ -161,7 +177,7 @@
 
   <div class="panel">
     <p class="panel-title">診断結果</p>
-    <div class="copy-bar"><button class="sec-btn" onclick="copyResult()" id="copy-btn" style="display:none">📋 結果をコピー</button></div>
+    <div class="copy-bar"><button class="sec-btn" onclick="copyResult()" id="copy-btn" style="display:none">📋 指標をコピー</button></div>
     <div id="result-content">
       <div class="empty-state"><div class="big">📊</div>左のデータを入力して<br>診断してください</div>
     </div>
@@ -170,6 +186,16 @@
   <div class="panel full-width" id="bottleneck-panel" style="display:none">
     <p class="panel-title">ボトルネック分析</p>
     <ul class="bottleneck-list" id="bottleneck-list"></ul>
+  </div>
+
+  <!-- 新設：総合診断レポートパネル -->
+  <div class="panel full-width" id="report-panel" style="display:none">
+    <p class="panel-title">総合診断レポート</p>
+    <div id="report-content-area"></div>
+    <div style="margin-top:24px; display:flex; gap:12px; flex-wrap:wrap;">
+      <button class="calc-btn" style="max-width:200px;" onclick="copyFullReport()" id="report-copy-btn">📋 レポートをコピー</button>
+      <button class="sec-btn" onclick="window.print()">🖨️ 印刷 / PDFとして保存</button>
+    </div>
   </div>
 
 </div></div>
@@ -305,15 +331,12 @@
 </div>
 
 <script>
-// ブラウザのメモリからアンロック状態を読み込む（2回目以降の自動パス機能）
 let isPremiumUnlocked = localStorage.getItem('premium_unlocked') === 'true';
 
-// ページ読み込み時の処理
 window.addEventListener('DOMContentLoaded', () => {
   const now = new Date();
   document.getElementById('targetMonth').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   
-  // 過去にログイン成功していれば最初からアンロック状態にする
   if (isPremiumUnlocked) {
     document.getElementById('graph-lock-panel').style.display = 'none';
     document.getElementById('graph-unlocked-content').style.display = 'block';
@@ -327,20 +350,17 @@ function showTab(id,btn){
   btn.classList.add('active');
 }
 
-// パスワード照合処理
 function unlockGraph() {
   const pw = document.getElementById('graph-pass').value;
   const errorMsg = document.getElementById('lock-error');
   
   if (pw === 'HR2026') {
     isPremiumUnlocked = true;
-    // メモリにアンロック成功状態を保存
     localStorage.setItem('premium_unlocked', 'true');
     
     document.getElementById('graph-lock-panel').style.display = 'none';
     document.getElementById('graph-unlocked-content').style.display = 'block';
     
-    // ロック解除時に保留されていたデータがあれば即時反映
     if (window._pendingSync) {
       const p = window._pendingSync;
       syncToGraphTab(p.month, p.revenue, p.fixed, p.fl);
@@ -423,14 +443,117 @@ function calculate(){
 
   document.getElementById('bottleneck-panel').style.display='block';
   document.getElementById('copy-btn').style.display='inline-block';
-  window._last={revenue,customers,unitPrice,profit,flRatio,breakEven,laborPerHour,marginRate};
+  window._last={revenue,customers,unitPrice,profit,flRatio,breakEven,laborPerHour,marginRate,targetMonth};
 
-  // アンロック状態の場合のみ月次グラフに自動同期。
+  // 拡張：総合診断レポートのテキスト自動組み立て
+  generateReport(profit, marginRate, flRatio, laborPerHour, breakEven, revenue, unitPrice, staff);
+
   if (isPremiumUnlocked) {
     syncToGraphTab(targetMonth, revenue, fixed, fl);
   } else {
     window._pendingSync = { month: targetMonth, revenue, fixed, fl };
   }
+}
+
+function generateReport(profit, marginRate, flRatio, laborPerHour, breakEven, revenue, unitPrice, staff) {
+  let summaryTitle = '';
+  let summaryDesc = '';
+  let plans = [];
+
+  // 総評のロジック構築
+  if (profit > 0) {
+    if (marginRate >= 15) {
+      summaryTitle = '優良経営（高利益体質モデル）';
+      summaryDesc = '現在のオペレーション、コスト管理、およびプライシングが最高のバランスで噛み合っています。現在の仕組みをマニュアル化し維持しつつ、スタッフへの利益還元、または多店舗展開や新規投資を視野に入れられる非常に健全な状態です。';
+    } else if (marginRate >= 5) {
+      summaryTitle = '標準・健全経営（安定運用フェーズ）';
+      summaryDesc = '手堅く利益を出せていますが、まだ改善の伸び代が残されています。突発的なコスト増や閑散期の売上ダウンに耐えるため、部分的な無駄（シフトの最適化やロス率の削減）を解消し、利益率10%以上を目指しましょう。';
+    } else {
+      summaryTitle = '薄利・収益性注意（リスク警戒フェーズ）';
+      summaryDesc = '黒字ではあるものの利益が極めて薄く、売上が少しでも落ちるとすぐに赤字転落する危険を孕んでいます。固定費、またはFL比率（原価・人件費）のどちらかが店舗キャパシティに対して過剰になっている可能性が高いです。';
+    }
+  } else {
+    if (revenue < breakEven && flRatio <= 65) {
+      summaryTitle = '固定費過剰・または集客不足型赤字';
+      summaryDesc = 'コスト構造（FL比率）自体は壊れていませんが、絶対的な売上高（客数または客単価）が損益分岐点に届いていません。家賃などの固定費負担が重いか、単純に認知不足による客数不足です。プロモーションとリピート施策が急務です。';
+    } else {
+      summaryTitle = '構造的赤字（コスト過多・破綻モデル）';
+      summaryDesc = '売上に対して、原価と人件費（FLコスト）が異常に膨らんでいます。「売れば売るほど赤字になる」か「売上を上げるための人手コストが利益をすべて食いつぶしている」構造です。メニューの価格改定や、オペレーションの根本的な見直しが必要です。';
+    }
+  }
+
+  // アクションプランの抽出
+  if (flRatio > 65) {
+    plans.push('<strong>【FL比率の適正化】</strong> 原価率の圧縮（仕入れルートの見直し、ポーション管理による廃棄ロス削減）または価格改定を最優先で行ってください。');
+  } else if (flRatio > 55) {
+    plans.push('<strong>【コストの微調整】</strong> FL比率は標準的ですが、アイドルタイム（暇な時間）のシフトを30分短縮するなど、細かな人件費コントロールで数%改善可能です。');
+  }
+
+  if (staff > 0 && laborPerHour < 3000) {
+    plans.push('<strong>【労働生産性の劇的改善】</strong> 人時売上高が危険水域です。ピークタイムに人員を集中させ、それ以外の時間帯はワンオペを含め極限まで削るなど、シフトの「粗密」を徹底してください。');
+  } else if (staff > 0 && laborPerHour < 5000) {
+    plans.push('<strong>【オペレーションの効率化】</strong> 事前仕込みの仕組み化やマルチタスク化を進め、少ない人数で同じ売上を回せる体制（人時売上高5,000円以上）を目指してください。');
+  }
+
+  if (unitPrice > 0 && unitPrice < 1500) {
+    plans.push('<strong>【客単価アップ施策の即時導入】</strong> 客単価が低い傾向です。セットメニューの再開発、トッピングやサイドメニューの「ついで買い」を誘発するメニューPOPの設置やスタッフの声かけをマニュアル化してください。');
+  }
+
+  if (revenue < breakEven) {
+    const diff = breakEven === Infinity ? 0 : breakEven - revenue;
+    plans.push(`<strong>【損益分岐点への到達プラン】</strong> 最低限、月あと <strong>${fmt(diff)}円</strong>（1日あたり約 <strong>${fmt(diff/(val('days')||1))}円</strong>）の売上上積みが必要です。新規獲得より低コストで済む「既存客の来店頻度向上（LINE配信やリピートクーポン）」にリソースを集中させましょう。`);
+  }
+
+  if (plans.length === 0) {
+    plans.push('<strong>【現状維持と標準化】</strong> 明確なボトルネックはありません。現在の優れた数値を維持するため、属人化を排除した業務マニュアルの作成や、優秀なスタッフの離職防止（環境改善）に予算を充ててください。');
+  }
+
+  // レポートエリアのHTML描写
+  const reportHtml = `
+    <div class="report-box" style="background:var(--surface2); border-left:4px solid var(--accent); padding:18px; border-radius:6px; margin-bottom:20px;">
+      <h3 style="font-size:15px; font-weight:700; margin-bottom:6px; color:var(--text);">判定：${summaryTitle}</h3>
+      <p style="color:var(--muted); font-size:13px; line-height:1.7;">${summaryDesc}</p>
+    </div>
+    <p style="font-size:12px; font-weight:700; color:var(--accent); margin-bottom:10px; letter-spacing:0.04em;">▼ 推奨改善アクションプラン</p>
+    <ul style="padding-left:18px; color:var(--text); font-size:13px;">
+      ${plans.map(p => `<li class="action-item" style="margin-bottom:10px; line-height:1.6;">${p}</li>`).join('')}
+    </ul>
+  `;
+  document.getElementById('report-content-area').innerHTML = reportHtml;
+  document.getElementById('report-panel').style.display = 'block';
+}
+
+function copyFullReport() {
+  const r = window._last; if (!r) return;
+  const reportArea = document.getElementById('report-content-area');
+  
+  // クリップボード用のプレーンテキスト作成
+  const text = [
+    `========================================`,
+    ` 店舗収益診断レポート (${r.targetMonth || '対象月未指定'})`,
+    `========================================`,
+    `【経営主要指標】`,
+    `・月間売上高  : ${fmt(r.revenue)} 円`,
+    `・営業利益    : ${fmt(r.profit)} 円 (利益率: ${r.marginRate.toFixed(1)}%)`,
+    `・FL比率      : ${r.flRatio.toFixed(1)}%`,
+    `・損益分岐点  : ${r.breakEven === Infinity ? '計算不可' : fmt(r.breakEven) + ' 円'}`,
+    `・人時売上高  : ${r.laborPerHour > 0 ? fmt(r.laborPerHour) + ' 円' : '—'}`,
+    `・客単価      : ${r.unitPrice > 0 ? fmt(r.unitPrice) + ' 円' : '—'}`,
+    `----------------------------------------`,
+    `【診断総評 ＆ アクションプラン】`,
+    reportArea.innerText,
+    `========================================`
+  ].join('\n');
+
+  navigator.clipboard.writeText(text).then(() => {
+    const b = document.getElementById('report-copy-btn');
+    b.textContent = '✅ レポートをコピーしました';
+    b.style.background = '#ffd97d';
+    setTimeout(() => {
+      b.textContent = '📋 レポートをコピー';
+      b.style.background = 'var(--accent)';
+    }, 2000);
+  });
 }
 
 function syncToGraphTab(month, revenue, fixed, fl) {
@@ -477,7 +600,7 @@ function copyResult(){
   navigator.clipboard.writeText(lines.join('\n')).then(()=>{
     const b=document.getElementById('copy-btn');
     b.textContent='✅ コピーしました';
-    setTimeout(()=>{b.textContent='📋 結果をコピー';},2000);
+    setTimeout(()=>{b.textContent='📋 指標をコピー';},2000);
   });
 }
 
